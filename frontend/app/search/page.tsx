@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Search, X, SlidersHorizontal, MapPin, Calendar, ArrowRight, Map, Grid3x3 } from 'lucide-react';
 import AdSpaceCard from '@/components/common/AdSpaceCard';
 import FilterPanel from '@/components/filters/FilterPanel';
@@ -35,7 +35,7 @@ const MapView = dynamic(() => import('@/components/search/MapView'), {
   ssr: false,
 });
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const categoryFilter = searchParams?.get('category');
   const adSpaceIdParam = searchParams?.get('adSpaceId');
