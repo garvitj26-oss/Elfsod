@@ -50,8 +50,8 @@ export default function CheckDataLoadingPage() {
       // Test 2: Direct Supabase Service
       let directResult = { success: false, count: 0, error: '' };
       try {
-        const spaces = await getAdSpaces({ limit: 5 });
-        directResult = { success: true, count: spaces.length, error: '' };
+        const spaces = await getAdSpaces();
+        directResult = { success: true, count: Math.min(spaces.length, 5), error: '' };
         console.log('✅ Direct Service:', spaces.length, 'ad spaces');
       } catch (error) {
         directResult = {
