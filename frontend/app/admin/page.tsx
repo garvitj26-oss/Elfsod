@@ -328,21 +328,26 @@ export default function AdminDashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this ad space?')) return;
+    if (!confirm('Are you sure you want to delete this ad space? This action cannot be undone.')) return;
 
     try {
       const response = await fetch(`/api/ad-spaces/${id}`, {
         method: 'DELETE',
       });
 
+      const responseData = await response.json().catch(() => ({}));
+
       if (response.ok) {
         await fetchAdSpaces();
+        alert('Ad space deleted successfully!');
       } else {
-        alert('Failed to delete ad space');
+        const errorMessage = responseData.error || responseData.message || responseData.details || 'Unknown error';
+        console.error('Delete API Error:', response.status, responseData);
+        alert(`Failed to delete ad space: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error deleting ad space:', error);
-      alert('Error deleting ad space');
+      alert('Error deleting ad space: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 

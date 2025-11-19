@@ -110,3 +110,72 @@ export async function GET(
   }
 }
 
+/**
+ * Delete an ad space by ID
+ * DELETE /api/ad-spaces/:id
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    
+    let supabase;
+    try {
+      supabase = await createClient();
+    } catch (clientError) {
+      console.error('❌ Failed to create Supabase client:', clientError);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to connect to database',
+        message: 'Please check your Supabase configuration.',
+      }, { status: 500 });
+    }
+
+    // Check if ad space exists first
+    const { data: existingSpace, error: checkError } = await supabase
+      .from('ad_spaces')
+      .select('id, title')
+      .eq('id', id)
+      .single();
+
+    if (checkError || !existingSpace) {
+      return NextResponse.json({
+        success: false,
+        error: 'Ad space not found',
+        details: checkError?.message
+      }, { status: 404 });
+    }
+
+    // Delete the ad space
+    const { error: deleteError } = await supabase
+      .from('ad_spaces')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('❌ Error deleting ad space:', deleteError);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to delete ad space',
+        details: deleteError.message
+      }, { status: 500 });
+    }
+
+    console.log('✅ Ad space deleted successfully:', id);
+    return NextResponse.json({
+      success: true,
+      message: 'Ad space deleted successfully'
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
+  }
+}
+
