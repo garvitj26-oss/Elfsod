@@ -24,7 +24,7 @@ export default function TestDirectConnectionPage() {
       let test1Result = { success: false, message: 'Failed to create client', error: '' };
       try {
         const supabase = createClient();
-        test1Result = { success: true, message: '✅ Supabase client created successfully' };
+        test1Result = { success: true, message: '✅ Supabase client created successfully', error: '' };
         console.log('✅ Test 1: Client created');
       } catch (error) {
         test1Result = {
@@ -55,7 +55,8 @@ export default function TestDirectConnectionPage() {
         } else {
           test2Result = {
             success: true,
-            message: `✅ Query successful! Found ${data?.length || 0} categories`
+            message: `✅ Query successful! Found ${data?.length || 0} categories`,
+            error: ''
           };
           console.log('✅ Test 2: Query successful', data);
         }
@@ -113,7 +114,8 @@ export default function TestDirectConnectionPage() {
             const data = await response.json();
             test3Result = {
               success: true,
-              message: `✅ Raw fetch successful! Found ${data?.length || 0} categories`
+              message: `✅ Raw fetch successful! Found ${data?.length || 0} categories`,
+              error: ''
             };
             console.log('✅ Test 3: Raw fetch successful', data);
           } else {
