@@ -20,9 +20,10 @@ This guide will help you deploy your Elfsod application to Vercel.
 2. **Configure Project Settings**
    - **Framework Preset**: Next.js (auto-detected)
    - **Root Directory**: `frontend` (IMPORTANT: Set this to `frontend`)
-   - **Build Command**: `npm run build` (runs automatically in frontend folder)
-   - **Output Directory**: `.next` (default)
-   - **Install Command**: `npm install` (default)
+   - Vercel will automatically detect `vercel.json` in the frontend folder
+   - **Build Command**: `npm run build` (auto-detected)
+   - **Output Directory**: `.next` (auto-detected)
+   - **Install Command**: `npm install` (auto-detected)
 
 3. **Add Environment Variables**
    Click "Environment Variables" and add the following:
@@ -72,9 +73,9 @@ This guide will help you deploy your Elfsod application to Vercel.
    vercel login
    ```
 
-3. **Navigate to project root**
+3. **Navigate to frontend folder**
    ```bash
-   cd /Users/srivastand/Desktop/practiseProjects/Elfsod
+   cd /Users/srivastand/Desktop/practiseProjects/Elfsod/frontend
    ```
 
 4. **Deploy**
@@ -83,8 +84,8 @@ This guide will help you deploy your Elfsod application to Vercel.
    ```
    
    When prompted:
-   - Set root directory to: `frontend`
-   - Confirm environment variables
+   - Confirm it's a Next.js project
+   - Add environment variables (or add them later in dashboard)
 
 5. **For production deployment**
    ```bash
