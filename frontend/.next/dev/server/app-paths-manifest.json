@@ -1,6 +1,8 @@
 {
+  "/ai-planner/page": "app/ai-planner/page.js",
   "/api/ad-spaces/route": "app/api/ad-spaces/route.js",
   "/api/categories/route": "app/api/categories/route.js",
+  "/cart/page": "app/cart/page.js",
   "/page": "app/page.js",
   "/search/page": "app/search/page.js"
 }
