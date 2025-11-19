@@ -154,16 +154,33 @@ export default function AdminDashboard() {
       
       const coords = cityCoordinates[formData.location_city] || cityCoordinates['Mumbai'];
       
-      // Create or find location first
+      // Create or find location first (from public.locations table)
       let locationId: string | undefined;
       try {
+        // Use address if provided, otherwise use area, otherwise use city as address
+        const address = formData.location_address || formData.location_area || `${formData.location_city}, India`;
+        
+        // Get state from city (simplified - you might want to add a state field to the form)
+        const cityToState: Record<string, string> = {
+          'Mumbai': 'Maharashtra',
+          'Delhi': 'Delhi',
+          'Bengaluru': 'Karnataka',
+          'Chennai': 'Tamil Nadu',
+          'Kolkata': 'West Bengal',
+          'Ahmedabad': 'Gujarat',
+          'Pune': 'Maharashtra',
+          'Chandigarh': 'Chandigarh',
+          'Kochi': 'Kerala',
+        };
+        const state = cityToState[formData.location_city] || 'Maharashtra';
+        
         const locationResponse = await fetch('/api/locations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             city: formData.location_city,
-            area: formData.location_area || undefined,
-            address: formData.location_address || undefined,
+            address: address,
+            state: state,
             latitude: coords.lat,
             longitude: coords.lng,
             country: 'India',

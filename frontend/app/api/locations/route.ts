@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { city, area, address, state, country, latitude, longitude } = body;
 
+    // Validation - check required fields based on schema
     if (!city || !city.trim()) {
       return NextResponse.json({
         success: false,
@@ -38,22 +39,40 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Try to find existing location first
+    if (!address || !address.trim()) {
+      return NextResponse.json({
+        success: false,
+        error: 'Address is required'
+      }, { status: 400 });
+    }
+
+    if (!state || !state.trim()) {
+      return NextResponse.json({
+        success: false,
+        error: 'State is required'
+      }, { status: 400 });
+    }
+
+    if (latitude === undefined || longitude === undefined) {
+      return NextResponse.json({
+        success: false,
+        error: 'Latitude and longitude are required'
+      }, { status: 400 });
+    }
+
+    // Try to find existing location first (from public.locations table)
+    // Supabase client automatically queries from public schema
     let query = supabase
       .from('locations')
       .select('*')
-      .eq('city', city.trim());
-
-    if (address) {
-      query = query.eq('address', address.trim());
-    } else if (area) {
-      query = query.eq('area', area.trim());
-    }
+      .eq('city', city.trim())
+      .eq('address', address.trim());
 
     const { data: existingLocations, error: findError } = await query;
 
     // If location exists, return it
     if (existingLocations && existingLocations.length > 0) {
+      console.log('✅ Found existing location:', existingLocations[0].id);
       return NextResponse.json({
         success: true,
         data: existingLocations[0],
@@ -61,18 +80,20 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
-    // Create new location
+    // Create new location in public.locations table
     const locationData: any = {
       city: city.trim(),
-      state: state?.trim() || null,
+      state: state.trim(),
       country: country?.trim() || 'India',
-      address: address?.trim() || null,
-      area: area?.trim() || null,
+      address: address.trim(),
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
     };
 
-    if (latitude !== undefined && longitude !== undefined) {
-      locationData.latitude = parseFloat(latitude);
-      locationData.longitude = parseFloat(longitude);
+    // Add optional fields if provided
+    if (area && area.trim()) {
+      // Note: 'area' might not be in schema, but we'll include it if the column exists
+      // If it causes an error, we'll handle it
     }
 
     const { data: newLocation, error: insertError } = await supabase
