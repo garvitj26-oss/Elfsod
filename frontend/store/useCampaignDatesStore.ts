@@ -6,7 +6,7 @@ interface CampaignDatesStore {
   setStartDate: (date: string) => void;
   setEndDate: (date: string) => void;
   clearDates: () => void;
-  initializeFromStorage: () => void;
+  initializeFromStorage: () => boolean;
   initializeDefaultDates: () => void;
 }
 
