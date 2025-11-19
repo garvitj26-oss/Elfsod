@@ -179,6 +179,12 @@ export default function AdminDashboard() {
       alert('Please enter a valid price per day');
       return;
     }
+
+    // Location validation - must have either location_id or address
+    if (!formData.location_id && !formData.location_address?.trim()) {
+      alert('Please either select a location from the database or enter an address to create a new location');
+      return;
+    }
     
     setLoading(true);
 
@@ -199,10 +205,10 @@ export default function AdminDashboard() {
       const coords = cityCoordinates[formData.location_city] || cityCoordinates['Mumbai'];
       
       // Use selected location_id from form, or create new location if not selected
-      let locationId: string | undefined = formData.location_id || undefined;
+      let locationId: string | undefined = formData.location_id?.trim() || undefined;
       
-      // If no location is selected, create a new one
-      if (!locationId && formData.location_address) {
+      // If no location is selected but address is provided, create a new location
+      if (!locationId && formData.location_address?.trim()) {
         try {
           // Get state from city
           const cityToState: Record<string, string> = {
@@ -271,7 +277,10 @@ export default function AdminDashboard() {
         ...(formData.route && { route: formData.route }),
       };
 
-      console.log('Submitting ad space:', apiData); // Debug log
+      console.log('Submitting ad space:', {
+        ...apiData,
+        locationId: locationId || 'NOT SET - will be null'
+      }); // Debug log
 
       const url = editingId ? `/api/ad-spaces/${editingId}` : '/api/ad-spaces';
       const method = editingId ? 'PUT' : 'POST';
@@ -656,7 +665,7 @@ export default function AdminDashboard() {
                 {/* Location Selector - Show locations from database */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Select Location from Database *
+                    Select Location from Database {locations.length === 0 && formData.location_address ? '(Optional)' : '*'}
                   </label>
                   {locationsLoading ? (
                     <div className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
@@ -664,7 +673,6 @@ export default function AdminDashboard() {
                     </div>
                   ) : locations.length > 0 ? (
                     <select
-                      required
                       value={formData.location_id}
                       onChange={(e) => {
                         const selectedLocation = locations.find(loc => loc.id === e.target.value);
@@ -677,7 +685,7 @@ export default function AdminDashboard() {
                       }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
                     >
-                      <option value="">-- Select a location --</option>
+                      <option value="">-- Select a location (or enter address below) --</option>
                       {locations.map((location) => (
                         <option key={location.id} value={location.id}>
                           {location.address} {location.area ? `(${location.area})` : ''} - {location.city}, {location.state}
@@ -686,7 +694,7 @@ export default function AdminDashboard() {
                     </select>
                   ) : (
                     <div className="px-4 py-2 border border-gray-300 rounded-lg bg-yellow-50 text-yellow-700 text-sm">
-                      No locations found for {formData.location_city}. A new location will be created when you fill the address below.
+                      No locations found for {formData.location_city}. Please enter an address below to create a new location.
                     </div>
                   )}
                 </div>
