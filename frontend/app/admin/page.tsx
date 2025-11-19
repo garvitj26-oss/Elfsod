@@ -13,7 +13,9 @@ const CoverageAreaSelector = dynamic(
 interface Category {
   id: string;
   name: string;
-  emoji: string;
+  icon_url?: string;
+  description?: string;
+  parent_category_id?: string;
 }
 
 interface AdSpaceForm {
@@ -37,24 +39,15 @@ interface AdSpaceForm {
   };
 }
 
-const CATEGORIES: Category[] = [
-  { id: '1', name: 'Billboards', emoji: '📢' },
-  { id: '2', name: 'Auto Rickshaws', emoji: '🛺' },
-  { id: '3', name: 'Bus Shelters', emoji: '🚌' },
-  { id: '4', name: 'Metro Stations', emoji: '🚇' },
-  { id: '5', name: 'Digital Screens', emoji: '📺' },
-  { id: '6', name: 'Mall Displays', emoji: '🏬' },
-  { id: '7', name: 'Cinema Halls', emoji: '🎬' },
-  { id: '8', name: 'Airport Advertising', emoji: '✈️' },
-];
-
 const CITIES = ['Mumbai', 'Delhi', 'Bengaluru', 'Chennai', 'Kolkata', 'Ahmedabad', 'Pune', 'Chandigarh', 'Kochi'];
 
 export default function AdminDashboard() {
   const [adSpaces, setAdSpaces] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
 
@@ -65,17 +58,42 @@ export default function AdminDashboard() {
     location_address: '',
     price_per_day: 5000,
     daily_impressions: 10000,
-    display_type: 'static',
+    display_type: 'static_billboard',
     width: 10,
     height: 20,
-    category_id: '1',
+    category_id: '',
     image_url: '',
     availability_status: 'available',
   });
 
   useEffect(() => {
     fetchAdSpaces();
+    fetchCategories();
   }, []);
+
+  // Set default category when categories are loaded
+  useEffect(() => {
+    if (categories.length > 0 && !formData.category_id) {
+      setFormData(prev => ({ ...prev, category_id: categories[0].id }));
+    }
+  }, [categories]);
+
+  const fetchCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const response = await fetch('/api/categories');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setCategories(result.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   const fetchAdSpaces = async () => {
     setLoading(true);
@@ -183,18 +201,19 @@ export default function AdminDashboard() {
 
   const handleEdit = (adSpace: any) => {
     setFormData({
-      title: adSpace.title,
+      title: adSpace.title || '',
       location_city: adSpace.location?.city || 'Mumbai',
       location_area: adSpace.location?.area || '',
       location_address: adSpace.location?.address || '',
-      price_per_day: adSpace.price_per_day,
-      daily_impressions: adSpace.daily_impressions,
-      display_type: adSpace.display_type,
+      price_per_day: adSpace.price_per_day || 5000,
+      daily_impressions: adSpace.daily_impressions || 10000,
+      display_type: adSpace.display_type || 'static_billboard',
       width: adSpace.dimensions?.width || 10,
       height: adSpace.dimensions?.height || 20,
-      category_id: adSpace.category?.id || '1',
-      image_url: adSpace.image_url || '',
-      availability_status: adSpace.availability_status,
+      category_id: adSpace.category?.id || (categories.length > 0 ? categories[0].id : ''),
+      image_url: adSpace.images?.[0] || '',
+      availability_status: adSpace.availability_status || 'available',
+      route: adSpace.route || undefined,
     });
     setEditingId(adSpace.id);
     setIsFormOpen(true);
@@ -208,10 +227,10 @@ export default function AdminDashboard() {
       location_address: '',
       price_per_day: 5000,
       daily_impressions: 10000,
-      display_type: 'static',
+      display_type: 'static_billboard',
       width: 10,
       height: 20,
-      category_id: '1',
+      category_id: categories.length > 0 ? categories[0].id : '',
       image_url: '',
       availability_status: 'available',
     });
@@ -219,9 +238,13 @@ export default function AdminDashboard() {
   };
 
   const filteredAdSpaces = adSpaces.filter((space) => {
-    const matchesSearch = space.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         space.location?.city?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || space.category?.id === filterCategory;
+    const matchesSearch = searchQuery === '' || 
+      space.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      space.location?.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      space.location?.address?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || 
+      space.category?.id === filterCategory ||
+      (filterCategory !== 'all' && !space.category && filterCategory === 'uncategorized');
     return matchesSearch && matchesCategory;
   });
 
@@ -254,7 +277,7 @@ export default function AdminDashboard() {
           </div>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="text-sm text-gray-600 mb-1">Categories</div>
-            <div className="text-3xl font-bold text-purple-600">{CATEGORIES.length}</div>
+            <div className="text-3xl font-bold text-purple-600">{categories.length}</div>
           </div>
         </div>
 
@@ -279,11 +302,12 @@ export default function AdminDashboard() {
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
+                disabled={categoriesLoading}
               >
                 <option value="all">All Categories</option>
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.emoji} {cat.name}
+                    {cat.name}
                   </option>
                 ))}
               </select>
@@ -365,9 +389,6 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-xl">
-                            {CATEGORIES.find((c) => c.id === space.category?.id)?.emoji || '📍'}
-                          </span>
                           <span className="text-sm text-gray-700">{space.category?.name || 'N/A'}</span>
                         </div>
                       </td>
@@ -465,12 +486,19 @@ export default function AdminDashboard() {
                     value={formData.category_id}
                     onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
+                    disabled={categoriesLoading}
                   >
-                    {CATEGORIES.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.emoji} {cat.name}
-                      </option>
-                    ))}
+                    {categoriesLoading ? (
+                      <option>Loading categories...</option>
+                    ) : categories.length === 0 ? (
+                      <option>No categories available</option>
+                    ) : (
+                      categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
