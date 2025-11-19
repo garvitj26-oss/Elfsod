@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
         updatedItems.push({
           id: update.id,
           title: update.title,
-          categoryId: update.categoryId
+          categoryId: update.categoryId as string
         });
         console.log(`✅ Updated: "${update.title}" with category ${update.categoryId}`);
       }
