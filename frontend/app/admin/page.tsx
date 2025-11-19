@@ -154,6 +154,35 @@ export default function AdminDashboard() {
       
       const coords = cityCoordinates[formData.location_city] || cityCoordinates['Mumbai'];
       
+      // Create or find location first
+      let locationId: string | undefined;
+      try {
+        const locationResponse = await fetch('/api/locations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            city: formData.location_city,
+            area: formData.location_area || undefined,
+            address: formData.location_address || undefined,
+            latitude: coords.lat,
+            longitude: coords.lng,
+            country: 'India',
+          }),
+        });
+
+        if (locationResponse.ok) {
+          const locationResult = await locationResponse.json();
+          if (locationResult.success && locationResult.data?.id) {
+            locationId = locationResult.data.id;
+            console.log('✅ Location created/found:', locationId);
+          }
+        } else {
+          console.warn('⚠️ Could not create location, continuing without location_id');
+        }
+      } catch (locationError) {
+        console.warn('⚠️ Location creation failed, continuing without location_id:', locationError);
+      }
+      
       // Transform form data to API format
       const apiData = {
         title: formData.title.trim(),
@@ -172,6 +201,7 @@ export default function AdminDashboard() {
           height: Number(formData.height) || 20,
         },
         availabilityStatus: formData.availability_status || 'available',
+        ...(locationId && { locationId }), // Include locationId if we have it
         ...(formData.route && { route: formData.route }),
       };
 
