@@ -1,12 +1,6 @@
 {
-  "/admin/page": "app/admin/page.js",
-  "/ai-planner/page": "app/ai-planner/page.js",
-  "/api/ad-spaces/filter/route": "app/api/ad-spaces/filter/route.js",
   "/api/ad-spaces/route": "app/api/ad-spaces/route.js",
   "/api/categories/route": "app/api/categories/route.js",
-  "/api/quote/route": "app/api/quote/route.js",
-  "/cart/page": "app/cart/page.js",
-  "/design/page": "app/design/page.js",
   "/page": "app/page.js",
   "/search/page": "app/search/page.js"
 }

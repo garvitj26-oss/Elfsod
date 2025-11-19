@@ -28,7 +28,7 @@ export default function CheckDataLoadingPage() {
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
-            nextjsResult = { success: true, count: result.data.length };
+            nextjsResult = { success: true, count: result.data.length, error: '' };
             console.log('✅ Next.js API:', result.data.length, 'ad spaces');
           } else {
             nextjsResult = { success: false, count: 0, error: 'Invalid response format' };
@@ -51,7 +51,7 @@ export default function CheckDataLoadingPage() {
       let directResult = { success: false, count: 0, error: '' };
       try {
         const spaces = await getAdSpaces({ limit: 5 });
-        directResult = { success: true, count: spaces.length };
+        directResult = { success: true, count: spaces.length, error: '' };
         console.log('✅ Direct Service:', spaces.length, 'ad spaces');
       } catch (error) {
         directResult = {
