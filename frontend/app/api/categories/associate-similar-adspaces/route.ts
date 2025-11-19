@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Step 2: Find ad spaces with similar names
     // Search for ad spaces where title or description contains category name keywords
     const categoryNameLower = categoryName.toLowerCase();
-    const keywords = categoryNameLower.split(' ').filter(k => k.length > 2);
+    const keywords = categoryNameLower.split(' ').filter((k: string) => k.length > 2);
 
     // Build search pattern - look for category name in title or description
     let query = supabase
