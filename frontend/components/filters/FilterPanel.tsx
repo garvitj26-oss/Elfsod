@@ -130,7 +130,7 @@ export default function FilterPanel({ isOpen, onClose, onApply, initialFilters }
           console.log('✅ Fetched', pubs.length, 'publishers via direct service');
         }
         
-        setPublishers(pubs.map(pub => ({
+        setPublishers(pubs.map((pub: any) => ({
           id: pub.id,
           name: pub.name,
           description: pub.description || ''
