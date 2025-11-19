@@ -192,20 +192,47 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check environment variables first
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Missing Supabase environment variables:', {
+        url: supabaseUrl ? 'Set' : 'Missing',
+        key: supabaseKey ? 'Set' : 'Missing',
+        env: process.env.NODE_ENV
+      });
+      return NextResponse.json({
+        success: false,
+        error: 'Database configuration error',
+        message: 'Supabase environment variables are not configured. Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel environment variables.',
+        details: {
+          url: supabaseUrl ? 'Set' : 'Missing',
+          key: supabaseKey ? 'Set' : 'Missing'
+        }
+      }, { status: 500 });
+    }
+
     let supabase;
     try {
       supabase = await createClient();
     } catch (clientError) {
       console.error('❌ Failed to create Supabase client:', clientError);
+      const errorMessage = clientError instanceof Error ? clientError.message : String(clientError);
       return NextResponse.json({
         success: false,
         error: 'Failed to connect to database',
-        message: 'Please check your Supabase configuration.',
+        message: errorMessage,
         fallback: true
       }, { status: 500 });
     }
 
     const body = await request.json();
+    console.log('📝 Received ad space creation request:', {
+      title: body.title,
+      categoryId: body.categoryId,
+      hasCoordinates: !!(body.latitude && body.longitude)
+    });
     const {
       title,
       description,
@@ -276,10 +303,16 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (categoryError || !category) {
+      console.error('❌ Category validation failed:', {
+        categoryId,
+        error: categoryError?.message,
+        code: categoryError?.code
+      });
       return NextResponse.json({
         success: false,
         error: 'Invalid category ID',
-        details: categoryError?.message
+        details: categoryError?.message || 'Category not found',
+        categoryId: categoryId
       }, { status: 400 });
     }
 
@@ -326,13 +359,23 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error('❌ Error creating ad space:', insertError);
+      console.error('❌ Error creating ad space:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+        data: adSpaceData
+      });
       return NextResponse.json({
         success: false,
         error: 'Failed to create ad space',
-        details: insertError.message
+        details: insertError.message,
+        hint: insertError.hint,
+        code: insertError.code
       }, { status: 500 });
     }
+    
+    console.log('✅ Ad space created successfully:', newAdSpace.id);
 
     // Parse JSON fields
     let parsedImages = newAdSpace.images;
