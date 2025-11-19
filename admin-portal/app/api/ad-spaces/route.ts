@@ -81,8 +81,12 @@ export async function POST(request: Request) {
       images = [],
       dimensions = {},
       availabilityStatus = 'available',
-      targetAudience
+      targetAudience,
+      route // Route data for movable spaces
     } = body;
+    
+    // Check if display type is movable
+    const isMovableSpace = ['auto_rickshaw', 'bus', 'bike', 'cab', 'truck', 'transit_branding'].includes(displayType);
 
     // Validation
     if (!title || !description) {
@@ -113,18 +117,21 @@ export async function POST(request: Request) {
       );
     }
 
-    if (latitude === undefined || longitude === undefined) {
-      return NextResponse.json(
-        { error: 'Latitude and longitude are required' },
-        { status: 400 }
-      );
-    }
+    // For movable spaces, location and coordinates are optional
+    if (!isMovableSpace) {
+      if (latitude === undefined || longitude === undefined) {
+        return NextResponse.json(
+          { error: 'Latitude and longitude are required for static spaces' },
+          { status: 400 }
+        );
+      }
 
-    if (!locationId) {
-      return NextResponse.json(
-        { error: 'Location ID is required' },
-        { status: 400 }
-      );
+      if (!locationId) {
+        return NextResponse.json(
+          { error: 'Location ID is required for static spaces' },
+          { status: 400 }
+        );
+      }
     }
 
     // Use admin client (service role) to bypass RLS for admin operations
@@ -157,19 +164,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify location exists
-    const { data: location, error: locationError } = await supabase
-      .from('locations')
-      .select('id, city')
-      .eq('id', locationId)
-      .single();
+        // Verify location exists (only if locationId is provided)
+        if (locationId) {
+          const { data: location, error: locationError } = await supabase
+            .from('locations')
+            .select('id, city')
+            .eq('id', locationId)
+            .single();
 
-    if (locationError || !location) {
-      return NextResponse.json(
-        { error: 'Invalid location ID' },
-        { status: 400 }
-      );
-    }
+          if (locationError || !location) {
+            return NextResponse.json(
+              { error: 'Invalid location ID' },
+              { status: 400 }
+            );
+          }
+        }
 
     // Prepare data for insertion
     const adSpaceData: any = {
@@ -181,13 +190,17 @@ export async function POST(request: Request) {
       price_per_month: parseFloat(pricePerMonth),
       daily_impressions: parseInt(dailyImpressions) || 0,
       monthly_footfall: parseInt(monthlyFootfall) || 0,
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
+      latitude: latitude !== undefined ? parseFloat(latitude) : 0,
+      longitude: longitude !== undefined ? parseFloat(longitude) : 0,
       availability_status: availabilityStatus,
       images: Array.isArray(images) ? images : [],
       dimensions: typeof dimensions === 'object' ? dimensions : {},
-      location_id: locationId
     };
+    
+    // Add location_id only if provided
+    if (locationId) {
+      adSpaceData.location_id = locationId;
+    }
 
     if (publisherId) {
       adSpaceData.publisher_id = publisherId;
@@ -195,6 +208,11 @@ export async function POST(request: Request) {
 
     if (targetAudience) {
       adSpaceData.target_audience = targetAudience;
+    }
+    
+    // Add route data for movable spaces
+    if (isMovableSpace && route) {
+      adSpaceData.route = route;
     }
 
     // Insert ad space

@@ -18,11 +18,24 @@ export async function POST(request: Request) {
       supabase = await createClient();
     } catch (clientError) {
       console.error('Error creating Supabase client:', clientError);
+      const isVercel = process.env.VERCEL === '1';
+      const hint = isVercel 
+        ? 'Set environment variables in Vercel Dashboard → Settings → Environment Variables. See VERCEL_DEPLOYMENT.md'
+        : 'Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local';
+      
       return NextResponse.json(
         { 
           error: 'Database configuration error',
           details: clientError instanceof Error ? clientError.message : 'Failed to create database client',
-          hint: 'Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
+          hint: hint,
+          ...(isVercel && { 
+            vercel: true,
+            requiredVars: [
+              'NEXT_PUBLIC_SUPABASE_URL',
+              'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+              'SUPABASE_SERVICE_ROLE_KEY'
+            ]
+          })
         },
         { status: 500 }
       );

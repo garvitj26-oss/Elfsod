@@ -44,8 +44,17 @@ export default function CreateAdSpacePage() {
     images: [] as string[],
     dimensionsWidth: '1920',
     dimensionsHeight: '1080',
+    // Movable space fields
+    numberOfVehicles: '',
+    coverageRadius: '',
+    baseCoverageKm: '',
+    additionalCoverageKm: '',
+    routeDescription: '',
   });
   const [imageUrlInput, setImageUrlInput] = useState('');
+  
+  // Check if display type is movable
+  const isMovableSpace = ['auto_rickshaw', 'bus', 'bike', 'cab', 'truck', 'transit_branding'].includes(formData.displayType);
 
   useEffect(() => {
     fetchCategories();
@@ -142,14 +151,14 @@ export default function CreateAdSpacePage() {
           title: formData.title,
           description: formData.description,
           categoryId: formData.categoryId,
-          locationId: formData.locationId,
+          locationId: formData.locationId || null,
           displayType: formData.displayType,
           pricePerDay: parseFloat(formData.pricePerDay),
           pricePerMonth: parseFloat(formData.pricePerMonth),
           dailyImpressions: parseInt(formData.dailyImpressions),
           monthlyFootfall: parseInt(formData.monthlyFootfall),
-          latitude: parseFloat(formData.latitude),
-          longitude: parseFloat(formData.longitude),
+          latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
+          longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
           availabilityStatus: formData.availabilityStatus,
           targetAudience: formData.targetAudience || null,
           images: formData.images,
@@ -157,6 +166,21 @@ export default function CreateAdSpacePage() {
             width: parseInt(formData.dimensionsWidth),
             height: parseInt(formData.dimensionsHeight),
           },
+          // Movable space route data
+          ...(isMovableSpace && {
+            route: {
+              center_location: formData.locationId && formData.latitude && formData.longitude ? {
+                latitude: parseFloat(formData.latitude),
+                longitude: parseFloat(formData.longitude),
+                address: locations.find(l => l.id === formData.locationId)?.address || ''
+              } : null,
+              coverage_radius: formData.coverageRadius ? parseFloat(formData.coverageRadius) : null,
+              base_coverage_km: formData.baseCoverageKm ? parseFloat(formData.baseCoverageKm) : null,
+              additional_coverage_km: formData.additionalCoverageKm ? parseFloat(formData.additionalCoverageKm) : null,
+              number_of_vehicles: formData.numberOfVehicles ? parseInt(formData.numberOfVehicles) : null,
+              route_description: formData.routeDescription || null,
+            }
+          }),
         }),
       });
 
@@ -271,10 +295,10 @@ export default function CreateAdSpacePage() {
             {/* Location */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Location *
+                {isMovableSpace ? 'Base Location (Optional)' : 'Location *'}
               </label>
               <select
-                required
+                required={!isMovableSpace}
                 value={formData.locationId}
                 onChange={(e) => handleLocationChange(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -286,6 +310,11 @@ export default function CreateAdSpacePage() {
                   </option>
                 ))}
               </select>
+              {isMovableSpace && (
+                <p className="mt-1 text-xs text-slate-500">
+                  For movable spaces, location is optional. You can specify coverage area below.
+                </p>
+              )}
             </div>
 
             {/* Display Type */}
@@ -299,12 +328,21 @@ export default function CreateAdSpacePage() {
                 onChange={(e) => setFormData({ ...formData, displayType: e.target.value })}
                 className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="static_billboard">Static Billboard</option>
-                <option value="digital_screen">Digital Screen</option>
-                <option value="led_display">LED Display</option>
-                <option value="backlit_panel">Backlit Panel</option>
-                <option value="vinyl_banner">Vinyl Banner</option>
-                <option value="transit_branding">Transit Branding</option>
+                <optgroup label="Static Spaces">
+                  <option value="static_billboard">Static Billboard</option>
+                  <option value="digital_screen">Digital Screen</option>
+                  <option value="led_display">LED Display</option>
+                  <option value="backlit_panel">Backlit Panel</option>
+                  <option value="vinyl_banner">Vinyl Banner</option>
+                </optgroup>
+                <optgroup label="Movable Spaces">
+                  <option value="bus">Bus</option>
+                  <option value="auto_rickshaw">Auto Rickshaw</option>
+                  <option value="bike">Bike</option>
+                  <option value="cab">Cab/Taxi</option>
+                  <option value="truck">Truck</option>
+                  <option value="transit_branding">Transit Branding</option>
+                </optgroup>
               </select>
             </div>
 
@@ -388,11 +426,11 @@ export default function CreateAdSpacePage() {
             {/* Latitude */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Latitude * <span className="text-xs text-slate-500">(Auto-filled from location)</span>
+                {isMovableSpace ? 'Base Latitude' : 'Latitude *'} <span className="text-xs text-slate-500">(Auto-filled from location)</span>
               </label>
               <input
                 type="number"
-                required
+                required={!isMovableSpace}
                 step="any"
                 value={formData.latitude}
                 onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
@@ -404,11 +442,11 @@ export default function CreateAdSpacePage() {
             {/* Longitude */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Longitude * <span className="text-xs text-slate-500">(Auto-filled from location)</span>
+                {isMovableSpace ? 'Base Longitude' : 'Longitude *'} <span className="text-xs text-slate-500">(Auto-filled from location)</span>
               </label>
               <input
                 type="number"
-                required
+                required={!isMovableSpace}
                 step="any"
                 value={formData.longitude}
                 onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
@@ -416,6 +454,92 @@ export default function CreateAdSpacePage() {
                 placeholder="Auto-filled from selected location"
               />
             </div>
+            
+            {/* Movable Space Fields */}
+            {isMovableSpace && (
+              <>
+                <div className="md:col-span-2 border-t border-slate-700 pt-6 mt-2">
+                  <h3 className="text-lg font-semibold text-white mb-4">Movable Space Details</h3>
+                </div>
+                
+                {/* Number of Vehicles */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Number of Vehicles
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.numberOfVehicles}
+                    onChange={(e) => setFormData({ ...formData, numberOfVehicles: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., 10"
+                  />
+                </div>
+                
+                {/* Coverage Radius */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Coverage Radius (km)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formData.coverageRadius}
+                    onChange={(e) => setFormData({ ...formData, coverageRadius: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., 50"
+                  />
+                </div>
+                
+                {/* Base Coverage */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Base Coverage (km)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formData.baseCoverageKm}
+                    onChange={(e) => setFormData({ ...formData, baseCoverageKm: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., 100"
+                  />
+                </div>
+                
+                {/* Additional Coverage */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Additional Coverage (km)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={formData.additionalCoverageKm}
+                    onChange={(e) => setFormData({ ...formData, additionalCoverageKm: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., 50"
+                  />
+                </div>
+                
+                {/* Route Description */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Route Description
+                  </label>
+                  <textarea
+                    value={formData.routeDescription}
+                    onChange={(e) => setFormData({ ...formData, routeDescription: e.target.value })}
+                    rows={3}
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., Covers major routes in city center, connects residential areas to business districts"
+                  />
+                </div>
+              </>
+            )}
 
             {/* Dimensions */}
             <div>
