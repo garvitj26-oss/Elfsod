@@ -258,21 +258,34 @@ async function GET(request) {
 }
 async function POST(request) {
     try {
+        // Check environment variables first
+        const supabaseUrl = ("TURBOPACK compile-time value", "https://vavubezjuqnkrvndtowt.supabase.co");
+        const supabaseKey = ("TURBOPACK compile-time value", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhdnViZXpqdXFua3J2bmR0b3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MDExNzUsImV4cCI6MjA3ODk3NzE3NX0.KZauqlbSrO9UD3QWGEVXQq4CBoOMbQom_RkwQ-e7smU");
+        if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
+        ;
         let supabase;
         try {
             supabase = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2f$server$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["createClient"])();
         } catch (clientError) {
             console.error('❌ Failed to create Supabase client:', clientError);
+            const errorMessage = clientError instanceof Error ? clientError.message : String(clientError);
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
                 error: 'Failed to connect to database',
-                message: 'Please check your Supabase configuration.',
+                message: errorMessage,
                 fallback: true
             }, {
                 status: 500
             });
         }
         const body = await request.json();
+        console.log('📝 Received ad space creation request:', {
+            title: body.title,
+            categoryId: body.categoryId,
+            locationId: body.locationId || 'not provided',
+            publisherId: body.publisherId || 'not provided',
+            hasCoordinates: !!(body.latitude && body.longitude)
+        });
         const { title, description, categoryId, locationId, publisherId, displayType, pricePerDay, pricePerMonth, dailyImpressions = 0, monthlyFootfall = 0, latitude, longitude, images = [], dimensions = {}, availabilityStatus = 'available', targetAudience } = body;
         // Validation
         if (!title || !description) {
@@ -326,10 +339,16 @@ async function POST(request) {
         // Verify category exists
         const { data: category, error: categoryError } = await supabase.from('categories').select('id, name').eq('id', categoryId).single();
         if (categoryError || !category) {
+            console.error('❌ Category validation failed:', {
+                categoryId,
+                error: categoryError?.message,
+                code: categoryError?.code
+            });
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
                 error: 'Invalid category ID',
-                details: categoryError?.message
+                details: categoryError?.message || 'Category not found',
+                categoryId: categoryId
             }, {
                 status: 400
             });
@@ -353,9 +372,15 @@ async function POST(request) {
         // Optional fields
         if (locationId) {
             adSpaceData.location_id = locationId;
+            console.log('✅ Setting location_id:', locationId);
+        } else {
+            console.warn('⚠️ No locationId provided - location_id will be null');
         }
         if (publisherId) {
             adSpaceData.publisher_id = publisherId;
+            console.log('✅ Setting publisher_id:', publisherId);
+        } else {
+            console.log('ℹ️ No publisherId provided - publisher_id will be null (this is optional)');
         }
         if (targetAudience) {
             adSpaceData.target_audience = targetAudience;
@@ -368,15 +393,24 @@ async function POST(request) {
         publisher:publishers(id, name, description, verification_status)
       `).single();
         if (insertError) {
-            console.error('❌ Error creating ad space:', insertError);
+            console.error('❌ Error creating ad space:', {
+                message: insertError.message,
+                details: insertError.details,
+                hint: insertError.hint,
+                code: insertError.code,
+                data: adSpaceData
+            });
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 success: false,
                 error: 'Failed to create ad space',
-                details: insertError.message
+                details: insertError.message,
+                hint: insertError.hint,
+                code: insertError.code
             }, {
                 status: 500
             });
         }
+        console.log('✅ Ad space created successfully:', newAdSpace.id);
         // Parse JSON fields
         let parsedImages = newAdSpace.images;
         if (typeof parsedImages === 'string') {

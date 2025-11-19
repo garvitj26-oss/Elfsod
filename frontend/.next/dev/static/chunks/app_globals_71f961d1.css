@@ -2665,6 +2665,10 @@
     opacity: .7;
   }
 
+  .disabled\:bg-gray-100:disabled {
+    background-color: var(--color-gray-100);
+  }
+
   .disabled\:opacity-50:disabled {
     opacity: .5;
   }
