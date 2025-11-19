@@ -15,7 +15,7 @@ export default function TopBar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { selectedCity } = useLocationStore();
   const { startDate, endDate } = useCampaignDatesStore();
-  const { user, signOut, isAdmin, loading } = useAuth();
+  const { user, supabaseUser, signOut, isAdmin, loading } = useAuth();
   const router = useRouter();
 
   const formatDateRange = () => {
@@ -71,14 +71,16 @@ export default function TopBar() {
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 border-2 border-gray-300 border-t-[#E91E63] rounded-full animate-spin"></div>
             </div>
-          ) : user ? (
+          ) : (user || supabaseUser) ? (
             <div className="relative">
               <button 
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-[#E91E63] to-[#F50057] rounded-full flex items-center justify-center text-white font-semibold">
-                  {user.full_name.charAt(0).toUpperCase()}
+                  {(user?.full_name || supabaseUser?.user_metadata?.full_name || supabaseUser?.email || 'U')
+                    .charAt(0)
+                    .toUpperCase()}
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-600" />
               </button>
@@ -87,10 +89,16 @@ export default function TopBar() {
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-200">
-                    <p className="text-sm font-semibold text-gray-900">{user.full_name}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
-                    <span className="inline-block mt-1 text-xs bg-[#E91E63]/10 text-[#E91E63] px-2 py-1 rounded-full">
-                      {user.user_type.charAt(0).toUpperCase() + user.user_type.slice(1)}
+                    <p className="text-sm font-semibold text-gray-900">
+                      {user?.full_name || supabaseUser?.user_metadata?.full_name || supabaseUser?.email || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {user?.email || supabaseUser?.email}
+                    </p>
+                    <span className="inline-block mt-1 text-xs bg-[#E91E63]/10 text-[#E91E63] px-2 py-1 rounded-full capitalize">
+                      {(user?.user_type ||
+                        (supabaseUser?.user_metadata?.user_type as 'advertiser' | 'publisher' | 'admin') ||
+                        'advertiser')}
                     </span>
                   </div>
                   

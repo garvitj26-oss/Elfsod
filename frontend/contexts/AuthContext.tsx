@@ -1,13 +1,13 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { User as SupabaseAuthUser, Session } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
-  supabaseUser: SupabaseUser | null;
+  supabaseUser: SupabaseAuthUser | null;
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -22,7 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseAuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -39,8 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         // Only log error if it's not a "not found" error
         if (error.code !== 'PGRST116') {
-          console.warn('⚠️ User profile table may not exist. Run auth_schema.sql in Supabase.');
+          console.warn('⚠️ Unable to fetch user profile. If this is the first time setting up auth, run supabase/auth_schema.sql');
           console.warn('Error details:', error.message);
+        } else {
+          console.warn('ℹ️ No profile found for user yet. Will create one.');
         }
         return null;
       }
@@ -52,33 +54,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const buildProfileFromSupabaseUser = (authUser: SupabaseAuthUser): User => {
+    const fallbackName =
+      authUser.user_metadata?.full_name ||
+      authUser.email?.split('@')[0] ||
+      'User';
+
+    const fallbackType =
+      (authUser.user_metadata?.user_type as User['user_type']) || 'advertiser';
+
+    return {
+      id: authUser.id,
+      email: authUser.email || '',
+      full_name: fallbackName,
+      phone: authUser.user_metadata?.phone || '',
+      company_name: authUser.user_metadata?.company_name || '',
+      user_type: fallbackType,
+      profile_image_url: authUser.user_metadata?.profile_image_url || '',
+      created_at: authUser.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  };
+
+  const ensureUserProfile = async (authUser: SupabaseAuthUser): Promise<User> => {
+    const fallbackProfile = buildProfileFromSupabaseUser(authUser);
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .upsert(
+          {
+            id: authUser.id,
+            email: fallbackProfile.email,
+            full_name: fallbackProfile.full_name,
+            phone: fallbackProfile.phone,
+            company_name: fallbackProfile.company_name || null,
+            user_type: fallbackProfile.user_type,
+            profile_image_url: fallbackProfile.profile_image_url || null,
+          },
+          { onConflict: 'id' }
+        )
+        .select('*')
+        .single();
+
+      if (error) {
+        console.warn('⚠️ Could not upsert user profile, using fallback', error.message);
+        return fallbackProfile;
+      }
+
+      return data as User;
+    } catch (error) {
+      console.error('❌ Failed to ensure user profile exists. Using fallback profile.', error);
+      return fallbackProfile;
+    }
+  };
+
   // Initialize auth state
   useEffect(() => {
     const initAuth = async () => {
       try {
-        console.log('🔐 Initializing auth...');
-        
         // Get initial session from localStorage
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('❌ Error getting session:', sessionError);
-        }
-
-        if (currentSession) {
-          console.log('✅ Found existing session:', currentSession.user.email);
-        } else {
-          console.log('ℹ️ No existing session found');
+          console.error('Error getting session:', sessionError);
         }
         
         setSession(currentSession);
         setSupabaseUser(currentSession?.user ?? null);
 
         if (currentSession?.user) {
-          console.log('👤 Fetching user profile...');
-          const profile = await fetchUserProfile(currentSession.user.id);
+          let profile = await fetchUserProfile(currentSession.user.id);
+
+          if (!profile) {
+            profile = await ensureUserProfile(currentSession.user);
+          }
+
           setUser(profile);
-          console.log('✅ User profile loaded:', profile?.full_name);
         }
 
         setLoading(false);
@@ -86,7 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
-            console.log('🔄 Auth state changed:', event, newSession?.user?.email || 'no user');
             setSession(newSession);
             setSupabaseUser(newSession?.user ?? null);
 
@@ -103,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           subscription.unsubscribe();
         };
       } catch (error) {
-        console.error('❌ Error initializing auth:', error);
+        console.error('Error initializing auth:', error);
         setLoading(false);
       }
     };
@@ -113,32 +164,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('🔐 Attempting sign in...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error('❌ Sign in error:', error.message);
         return { error };
       }
-
-      console.log('✅ Sign in successful:', data.user?.email);
-      console.log('📦 Session stored in localStorage');
 
       if (data.user && data.session) {
         setSession(data.session);
         setSupabaseUser(data.user);
         
-        const profile = await fetchUserProfile(data.user.id);
+        let profile = await fetchUserProfile(data.user.id);
+        if (!profile) {
+          profile = await ensureUserProfile(data.user);
+        }
         setUser(profile);
-        console.log('✅ User profile loaded:', profile?.full_name);
       }
 
       return { error: null };
     } catch (error) {
-      console.error('❌ Unexpected sign in error:', error);
       return { error: error as Error };
     }
   };
@@ -151,7 +198,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userType: 'advertiser' | 'publisher' = 'advertiser'
   ) => {
     try {
-      console.log('📝 Attempting sign up...');
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -165,31 +211,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        console.error('❌ Sign up error:', error.message);
         return { error };
       }
-
-      console.log('✅ Sign up successful:', data.user?.email);
-      console.log('📦 Session created and stored');
 
       // Set session and user immediately
       if (data.user && data.session) {
         setSession(data.session);
         setSupabaseUser(data.user);
-        console.log('✅ Session set in AuthContext');
 
         // Profile will be created automatically by the database trigger
         // Fetch it after a short delay
         setTimeout(async () => {
-          const profile = await fetchUserProfile(data.user!.id);
+          let profile = await fetchUserProfile(data.user!.id);
+          if (!profile) {
+            profile = await ensureUserProfile(data.user!);
+          }
           setUser(profile);
-          console.log('✅ User profile loaded after signup:', profile?.full_name);
         }, 1500);
       }
 
       return { error: null };
     } catch (error) {
-      console.error('❌ Unexpected sign up error:', error);
       return { error: error as Error };
     }
   };
