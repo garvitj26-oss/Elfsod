@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 /**
  * Next.js API route to fetch a single ad space by ID
@@ -378,16 +378,25 @@ export async function DELETE(
   try {
     const { id } = await params;
     
+    // Use admin client for deletion to bypass RLS if service role key is available
+    // Otherwise fall back to regular client (will work if RLS policies allow deletion)
     let supabase;
     try {
-      supabase = await createClient();
+      supabase = await createAdminClient();
+      console.log('✅ Using admin client for deletion (bypasses RLS)');
     } catch (clientError) {
-      console.error('❌ Failed to create Supabase client:', clientError);
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to connect to database',
-        message: 'Please check your Supabase configuration.',
-      }, { status: 500 });
+      console.warn('⚠️ Admin client failed, trying regular client:', clientError);
+      try {
+        supabase = await createClient();
+        console.log('✅ Using regular client for deletion (RLS policies will apply)');
+      } catch (regularClientError) {
+        console.error('❌ Failed to create Supabase client:', regularClientError);
+        return NextResponse.json({
+          success: false,
+          error: 'Failed to connect to database',
+          message: 'Please check your Supabase configuration.',
+        }, { status: 500 });
+      }
     }
 
     // Check if ad space exists first
