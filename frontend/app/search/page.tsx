@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, X, SlidersHorizontal, List, Map as MapIcon, MapPin, Calendar, ArrowRight } from 'lucide-react';
+import { Search, X, SlidersHorizontal, MapPin, Calendar, ArrowRight, Map, Grid3x3 } from 'lucide-react';
 import AdSpaceCard from '@/components/common/AdSpaceCard';
 import FilterPanel from '@/components/filters/FilterPanel';
 import CartNotification from '@/components/common/CartNotification';
@@ -45,13 +45,13 @@ export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [adSpaces, setAdSpaces] = useState<AdSpace[]>([]);
   const [selectedAdSpace, setSelectedAdSpace] = useState<AdSpace | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [additionalKm, setAdditionalKm] = useState(0);
   const [appliedFilters, setAppliedFilters] = useState<FilterState | null>(null);
   const [showCartNotification, setShowCartNotification] = useState(false);
   const [addedItemTitle, setAddedItemTitle] = useState('');
+  const [viewMode, setViewMode] = useState<'map' | 'grid'>('map');
   const selectedCity = useLocationStore((state) => state.selectedCity);
   const { startDate, endDate, setStartDate, setEndDate } = useCampaignDatesStore();
   const addItem = useCartStore((state) => state.addItem);
@@ -72,7 +72,6 @@ export default function SearchPage() {
       const space = adSpaces.find(s => s.id === adSpaceIdParam);
       if (space && space.id !== selectedAdSpace?.id) {
         setSelectedAdSpace(space);
-        setViewMode('map');
         setAdditionalKm(0); // Reset additional coverage when selecting new space
         // Update location store to match the ad space city
         if (space.location?.city) {
@@ -287,29 +286,23 @@ export default function SearchPage() {
               <SlidersHorizontal className="w-4 h-4" />
               Filters
             </button>
-            <div className="flex-1" />
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md transition-colors ${
-                  viewMode === 'list' 
-                    ? 'bg-white shadow-sm text-[#E91E63]' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('map')}
-                className={`p-2 rounded-md transition-colors ${
-                  viewMode === 'map' 
-                    ? 'bg-white shadow-sm text-[#E91E63]' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <MapIcon className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              onClick={() => setViewMode(viewMode === 'map' ? 'grid' : 'map')}
+              className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
+              title={viewMode === 'map' ? 'Switch to Grid View' : 'Switch to Map View'}
+            >
+              {viewMode === 'map' ? (
+                <>
+                  <Grid3x3 className="w-4 h-4" />
+                  Grid
+                </>
+              ) : (
+                <>
+                  <Map className="w-4 h-4" />
+                  Map
+                </>
+              )}
+            </button>
           </div>
         </div>
 
@@ -366,7 +359,6 @@ export default function SearchPage() {
                   key={space.id} 
                   onClick={() => {
                     setSelectedAdSpace(space);
-                    setViewMode('map');
                   }}
                   className={`cursor-pointer rounded-lg transition-all ${
                     selectedAdSpace?.id === space.id 
