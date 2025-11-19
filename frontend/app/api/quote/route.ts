@@ -292,7 +292,9 @@ async function sendWithBrevo(content: string, to: string): Promise<{ success: bo
 
     const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
 
-    console.log('Email sent successfully via Brevo. Message ID:', result.messageId);
+    // Brevo API returns { response, body } structure
+    const messageId = (result as any)?.messageId || (result as any)?.body?.messageId || 'N/A';
+    console.log('Email sent successfully via Brevo. Message ID:', messageId);
     return { success: true };
   } catch (error) {
     console.error('Error sending email with Brevo:', error);
