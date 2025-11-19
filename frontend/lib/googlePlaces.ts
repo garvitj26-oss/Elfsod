@@ -51,7 +51,7 @@ export async function getCityFromCoordinates(
       return null;
     }
 
-    if (data.status === 'OK' && data.results.length > 0) {
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
       // Find the city name from address components
       // Priority: locality > administrative_area_level_2 > administrative_area_level_1
       for (const result of data.results) {
