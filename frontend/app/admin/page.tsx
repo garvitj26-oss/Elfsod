@@ -224,7 +224,9 @@ export default function AdminDashboard() {
           };
           const state = cityToState[formData.location_city] || 'Maharashtra';
           
-          const address = formData.location_address || formData.location_area || `${formData.location_city}, India`;
+          const address = formData.location_address.trim() || formData.location_area?.trim() || `${formData.location_city}, India`;
+          
+          console.log('📍 Creating new location:', { city: formData.location_city, address, state });
           
           const locationResponse = await fetch('/api/locations', {
             method: 'POST',
@@ -243,16 +245,30 @@ export default function AdminDashboard() {
             const locationResult = await locationResponse.json();
             if (locationResult.success && locationResult.data?.id) {
               locationId = locationResult.data.id;
-              console.log('✅ New location created:', locationId);
+              console.log('✅ New location created with ID:', locationId);
+            } else {
+              console.error('❌ Location creation response missing ID:', locationResult);
+              alert('Failed to create location. Please try again.');
+              setLoading(false);
+              return;
             }
           } else {
-            console.warn('⚠️ Could not create location, continuing without location_id');
+            const errorData = await locationResponse.json().catch(() => ({}));
+            console.error('❌ Could not create location:', errorData);
+            alert(`Failed to create location: ${errorData.error || 'Unknown error'}. Please try again.`);
+            setLoading(false);
+            return;
           }
         } catch (locationError) {
-          console.warn('⚠️ Location creation failed, continuing without location_id:', locationError);
+          console.error('❌ Location creation failed:', locationError);
+          alert('Failed to create location. Please try again.');
+          setLoading(false);
+          return;
         }
       } else if (locationId) {
         console.log('✅ Using selected location_id:', locationId);
+      } else {
+        console.warn('⚠️ No location_id and no address provided - location_id will be null');
       }
       
       // Transform form data to API format
