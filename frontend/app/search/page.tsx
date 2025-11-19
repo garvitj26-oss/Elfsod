@@ -944,3 +944,15 @@ function SearchPageContent() {
     </div>
   );
 }
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-[calc(100vh-64px)] items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
