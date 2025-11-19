@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * Next.js API route to fetch a single ad space by ID
@@ -378,25 +378,16 @@ export async function DELETE(
   try {
     const { id } = await params;
     
-    // Use admin client for deletion to bypass RLS if service role key is available
-    // Otherwise fall back to regular client (will work if RLS policies allow deletion)
     let supabase;
     try {
-      supabase = await createAdminClient();
-      console.log('✅ Using admin client for deletion (bypasses RLS)');
+      supabase = await createClient();
     } catch (clientError) {
-      console.warn('⚠️ Admin client failed, trying regular client:', clientError);
-      try {
-        supabase = await createClient();
-        console.log('✅ Using regular client for deletion (RLS policies will apply)');
-      } catch (regularClientError) {
-        console.error('❌ Failed to create Supabase client:', regularClientError);
-        return NextResponse.json({
-          success: false,
-          error: 'Failed to connect to database',
-          message: 'Please check your Supabase configuration.',
-        }, { status: 500 });
-      }
+      console.error('❌ Failed to create Supabase client:', clientError);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to connect to database',
+        message: 'Please check your Supabase configuration.',
+      }, { status: 500 });
     }
 
     // Check if ad space exists first
@@ -414,78 +405,25 @@ export async function DELETE(
       }, { status: 404 });
     }
 
-    // Check for related records that might prevent deletion
-    // Note: cart_items and bookings have ON DELETE CASCADE, so they should auto-delete
-    // But let's check if there are any active bookings first
-    const { data: activeBookings, error: bookingCheckError } = await supabase
-      .from('bookings')
-      .select('id')
-      .eq('ad_space_id', id)
-      .in('status', ['pending', 'confirmed', 'active'])
-      .limit(1);
-
-    if (bookingCheckError) {
-      console.warn('⚠️ Could not check bookings:', bookingCheckError.message);
-    }
-
-    if (activeBookings && activeBookings.length > 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Cannot delete ad space',
-        details: 'This ad space has active or pending bookings. Please cancel or complete the bookings first.',
-        code: 'HAS_ACTIVE_BOOKINGS'
-      }, { status: 400 });
-    }
-
     // Delete the ad space
-    const { data: deletedData, error: deleteError } = await supabase
+    const { error: deleteError } = await supabase
       .from('ad_spaces')
       .delete()
-      .eq('id', id)
-      .select('id');
+      .eq('id', id);
 
     if (deleteError) {
-      console.error('❌ Error deleting ad space:', {
-        message: deleteError.message,
-        details: deleteError.details,
-        hint: deleteError.hint,
-        code: deleteError.code
-      });
-      
-      // Check if it's an RLS policy issue
-      if (deleteError.code === '42501' || deleteError.message?.includes('permission denied') || deleteError.message?.includes('policy')) {
-        return NextResponse.json({
-          success: false,
-          error: 'Permission denied',
-          details: 'Row Level Security (RLS) policy is preventing deletion. Please check your Supabase RLS policies for the ad_spaces table.',
-          code: 'RLS_POLICY_ERROR',
-          hint: deleteError.hint
-        }, { status: 403 });
-      }
-
+      console.error('❌ Error deleting ad space:', deleteError);
       return NextResponse.json({
         success: false,
         error: 'Failed to delete ad space',
-        details: deleteError.message,
-        hint: deleteError.hint,
-        code: deleteError.code
+        details: deleteError.message
       }, { status: 500 });
-    }
-
-    // Verify deletion
-    if (!deletedData || deletedData.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'Ad space not found or already deleted',
-        details: 'No rows were deleted. The ad space may not exist or may have already been deleted.'
-      }, { status: 404 });
     }
 
     console.log('✅ Ad space deleted successfully:', id);
     return NextResponse.json({
       success: true,
-      message: 'Ad space deleted successfully',
-      deletedId: id
+      message: 'Ad space deleted successfully'
     }, { status: 200 });
 
   } catch (error) {

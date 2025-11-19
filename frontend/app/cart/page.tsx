@@ -1,16 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trash2, Calendar, ArrowRight, ShoppingBag, Tag, Lock, MapPin, Mail, Loader2, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { useCartStore } from '@/store/useCartStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function CartPage() {
-  const { items, removeItem, updateItem, getTotal, clearCart, markItemsAsPending, getPendingCount } = useCartStore();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { items, removeItem, updateItem, getTotal, clearCart, markItemsAsPending, getPendingCount, mergeGuestCart, setUserId } = useCartStore();
   const [promoCode, setPromoCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const pendingCount = getPendingCount();
+
+  // Set user ID and merge guest cart when user signs in
+  useEffect(() => {
+    if (user && !authLoading) {
+      setUserId(user.id);
+      mergeGuestCart(user.id);
+    } else if (!user && !authLoading) {
+      setUserId(null);
+    }
+  }, [user, authLoading, mergeGuestCart, setUserId]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -32,6 +46,11 @@ export default function CartPage() {
   const total = subtotal + tax;
 
   const handleRequestQuote = async () => {
+    if (!user) {
+      router.push('/auth/signin?redirect=/cart');
+      return;
+    }
+
     if (items.length === 0) {
       alert('Your cart is empty');
       return;
@@ -47,6 +66,7 @@ export default function CartPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          user_email: user.email,
           items: items.map(item => ({
             id: item.id,
             ad_space: {
@@ -92,6 +112,18 @@ export default function CartPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E91E63] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

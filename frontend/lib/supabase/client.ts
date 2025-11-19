@@ -10,7 +10,15 @@ export function createClient() {
   }
 
   try {
-    return createBrowserClient(supabaseUrl, supabaseKey);
+    return createBrowserClient(supabaseUrl, supabaseKey, {
+      auth: {
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        storageKey: 'elfsod-auth-token',
+      },
+    });
   } catch (error) {
     console.error('❌ Failed to create Supabase client:', error);
     throw error;
