@@ -114,6 +114,28 @@ export default function AdminDashboard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.title || !formData.title.trim()) {
+      alert('Please enter a title');
+      return;
+    }
+    
+    if (!formData.category_id || formData.category_id.trim() === '') {
+      alert('Please select a category');
+      return;
+    }
+    
+    if (!formData.display_type) {
+      alert('Please select a display type');
+      return;
+    }
+    
+    if (!formData.price_per_day || formData.price_per_day <= 0) {
+      alert('Please enter a valid price per day');
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -134,24 +156,26 @@ export default function AdminDashboard() {
       
       // Transform form data to API format
       const apiData = {
-        title: formData.title,
-        description: formData.title + ' - ' + (formData.location_address || formData.location_area || formData.location_city), // Generate description from title and location
-        categoryId: formData.category_id,
+        title: formData.title.trim(),
+        description: (formData.title.trim() + ' - ' + (formData.location_address || formData.location_area || formData.location_city)).trim(),
+        categoryId: formData.category_id.trim(),
         displayType: formData.display_type,
-        pricePerDay: formData.price_per_day,
-        pricePerMonth: formData.price_per_day * 30, // Calculate monthly price
-        dailyImpressions: formData.daily_impressions,
-        monthlyFootfall: formData.daily_impressions * 30, // Estimate monthly footfall
+        pricePerDay: Number(formData.price_per_day),
+        pricePerMonth: Number(formData.price_per_day) * 30, // Calculate monthly price
+        dailyImpressions: Number(formData.daily_impressions) || 0,
+        monthlyFootfall: (Number(formData.daily_impressions) || 0) * 30, // Estimate monthly footfall
         latitude: coords.lat,
         longitude: coords.lng,
-        images: formData.image_url ? [formData.image_url] : [],
+        images: formData.image_url ? [formData.image_url.trim()] : [],
         dimensions: {
-          width: formData.width,
-          height: formData.height,
+          width: Number(formData.width) || 10,
+          height: Number(formData.height) || 20,
         },
-        availabilityStatus: formData.availability_status,
+        availabilityStatus: formData.availability_status || 'available',
         ...(formData.route && { route: formData.route }),
       };
+
+      console.log('Submitting ad space:', apiData); // Debug log
 
       const url = editingId ? `/api/ad-spaces/${editingId}` : '/api/ad-spaces';
       const method = editingId ? 'PUT' : 'POST';
@@ -162,15 +186,17 @@ export default function AdminDashboard() {
         body: JSON.stringify(apiData),
       });
 
+      const responseData = await response.json().catch(() => ({}));
+      
       if (response.ok) {
         await fetchAdSpaces();
         resetForm();
         setIsFormOpen(false);
         alert(editingId ? 'Ad space updated successfully!' : 'Ad space created successfully!');
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API Error:', errorData);
-        alert(`Failed to save ad space: ${errorData.error || errorData.message || 'Unknown error'}`);
+        console.error('API Error Response:', response.status, responseData);
+        const errorMessage = responseData.error || responseData.message || responseData.details || 'Unknown error';
+        alert(`Failed to save ad space: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error saving ad space:', error);
