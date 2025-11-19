@@ -13,7 +13,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createClient();
+    let supabase;
+    try {
+      supabase = await createClient();
+    } catch (clientError) {
+      console.error('Error creating Supabase client:', clientError);
+      return NextResponse.json(
+        { 
+          error: 'Database configuration error',
+          details: clientError instanceof Error ? clientError.message : 'Failed to create database client',
+          hint: 'Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
+        },
+        { status: 500 }
+      );
+    }
 
     // Fetch admin user from admin_users table
     const { data: adminUser, error: fetchError } = await supabase
@@ -23,7 +36,35 @@ export async function POST(request: Request) {
       .eq('is_active', true)
       .single();
 
-    if (fetchError || !adminUser) {
+    if (fetchError) {
+      console.error('Error fetching admin user:', {
+        message: fetchError.message,
+        details: fetchError.details,
+        hint: fetchError.hint,
+        code: fetchError.code,
+        email: email.toLowerCase()
+      });
+      
+      // Check if it's a "not found" error
+      if (fetchError.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: 'Invalid email or password' },
+          { status: 401 }
+        );
+      }
+      
+      return NextResponse.json(
+        { 
+          error: 'Database error',
+          details: fetchError.message,
+          hint: 'Check if admin_users table exists and RLS policies are configured'
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!adminUser) {
+      console.log('Admin user not found:', email.toLowerCase());
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -31,8 +72,17 @@ export async function POST(request: Request) {
     }
 
     // Verify password
+    if (!adminUser.password_hash) {
+      console.error('Admin user has no password hash:', adminUser.id);
+      return NextResponse.json(
+        { error: 'Account configuration error' },
+        { status: 500 }
+      );
+    }
+
     const isValidPassword = await bcrypt.compare(password, adminUser.password_hash);
     if (!isValidPassword) {
+      console.log('Invalid password for admin user:', email.toLowerCase());
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
@@ -54,9 +104,18 @@ export async function POST(request: Request) {
       });
 
     if (sessionError) {
-      console.error('Error creating admin session:', sessionError);
+      console.error('Error creating admin session:', {
+        message: sessionError.message,
+        details: sessionError.details,
+        hint: sessionError.hint,
+        code: sessionError.code
+      });
       return NextResponse.json(
-        { error: 'Failed to create session' },
+        { 
+          error: 'Failed to create session',
+          details: sessionError.message,
+          hint: 'Check if admin_sessions table exists and RLS policies allow INSERT'
+        },
         { status: 500 }
       );
     }
@@ -76,8 +135,15 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Error in admin sign in:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: errorMessage,
+        ...(process.env.NODE_ENV === 'development' && { stack: errorStack })
+      },
       { status: 500 }
     );
   }

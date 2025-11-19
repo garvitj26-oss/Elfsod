@@ -22,13 +22,16 @@ export default function AdminSignInPage() {
       const { error: signInError } = await signIn(email, password);
 
       if (signInError) {
-        setError(signInError.message || 'Invalid email or password');
+        const errorMessage = signInError.message || 'Invalid email or password';
+        console.error('Sign in error:', signInError);
+        setError(errorMessage);
       } else {
         // Redirect to admin dashboard
         router.push('/dashboard');
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      console.error('Unexpected sign in error:', err);
+      setError('An unexpected error occurred. Please check the console for details.');
     } finally {
       setLoading(false);
     }

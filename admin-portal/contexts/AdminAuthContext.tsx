@@ -77,7 +77,23 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        return { error: new Error(data.error || 'Sign in failed') };
+        let errorMessage = data.error || 'Sign in failed';
+        if (data.details) {
+          errorMessage += `: ${data.details}`;
+        }
+        if (data.hint) {
+          errorMessage += ` (${data.hint})`;
+        }
+        console.error('Sign in API error:', {
+          status: response.status,
+          error: data
+        });
+        return { error: new Error(errorMessage) };
+      }
+
+      if (!data.token || !data.adminUser) {
+        console.error('Sign in response missing token or adminUser:', data);
+        return { error: new Error('Invalid response from server') };
       }
 
       // Store token in localStorage and set cookie
