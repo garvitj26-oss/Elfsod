@@ -119,10 +119,11 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('❌ Supabase query error:', error);
+      const errorMessage = (error as any)?.message || String(error);
       return NextResponse.json({
         success: false,
         error: 'Database query failed',
-        details: error instanceof Error ? error.message : String(error)
+        details: errorMessage
       }, { status: 500 });
     }
 
