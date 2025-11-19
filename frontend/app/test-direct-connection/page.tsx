@@ -6,14 +6,14 @@ import { createClient } from '@/lib/supabase/client';
 export default function TestDirectConnectionPage() {
   const [status, setStatus] = useState<{
     loading: boolean;
-    test1: { success: boolean; message: string; error?: string };
-    test2: { success: boolean; message: string; error?: string };
-    test3: { success: boolean; message: string; error?: string };
+    test1: { success: boolean; message: string; error: string };
+    test2: { success: boolean; message: string; error: string };
+    test3: { success: boolean; message: string; error: string };
   }>({
     loading: true,
-    test1: { success: false, message: 'Not tested' },
-    test2: { success: false, message: 'Not tested' },
-    test3: { success: false, message: 'Not tested' }
+    test1: { success: false, message: 'Not tested', error: '' },
+    test2: { success: false, message: 'Not tested', error: '' },
+    test3: { success: false, message: 'Not tested', error: '' }
   });
 
   useEffect(() => {
