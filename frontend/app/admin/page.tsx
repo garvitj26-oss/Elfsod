@@ -99,25 +99,64 @@ export default function AdminDashboard() {
     setLoading(true);
 
     try {
+      // Get coordinates for the city (default coordinates)
+      const cityCoordinates: Record<string, { lat: number; lng: number }> = {
+        'Mumbai': { lat: 19.0760, lng: 72.8777 },
+        'Delhi': { lat: 28.6139, lng: 77.2090 },
+        'Bengaluru': { lat: 12.9716, lng: 77.5946 },
+        'Chennai': { lat: 13.0827, lng: 80.2707 },
+        'Kolkata': { lat: 22.5726, lng: 88.3639 },
+        'Ahmedabad': { lat: 23.0225, lng: 72.5714 },
+        'Pune': { lat: 18.5204, lng: 73.8567 },
+        'Chandigarh': { lat: 30.7333, lng: 76.7794 },
+        'Kochi': { lat: 9.9312, lng: 76.2673 },
+      };
+      
+      const coords = cityCoordinates[formData.location_city] || cityCoordinates['Mumbai'];
+      
+      // Transform form data to API format
+      const apiData = {
+        title: formData.title,
+        description: formData.title + ' - ' + (formData.location_address || formData.location_area || formData.location_city), // Generate description from title and location
+        categoryId: formData.category_id,
+        displayType: formData.display_type,
+        pricePerDay: formData.price_per_day,
+        pricePerMonth: formData.price_per_day * 30, // Calculate monthly price
+        dailyImpressions: formData.daily_impressions,
+        monthlyFootfall: formData.daily_impressions * 30, // Estimate monthly footfall
+        latitude: coords.lat,
+        longitude: coords.lng,
+        images: formData.image_url ? [formData.image_url] : [],
+        dimensions: {
+          width: formData.width,
+          height: formData.height,
+        },
+        availabilityStatus: formData.availability_status,
+        ...(formData.route && { route: formData.route }),
+      };
+
       const url = editingId ? `/api/ad-spaces/${editingId}` : '/api/ad-spaces';
       const method = editingId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(apiData),
       });
 
       if (response.ok) {
         await fetchAdSpaces();
         resetForm();
         setIsFormOpen(false);
+        alert(editingId ? 'Ad space updated successfully!' : 'Ad space created successfully!');
       } else {
-        alert('Failed to save ad space');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API Error:', errorData);
+        alert(`Failed to save ad space: ${errorData.error || errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error saving ad space:', error);
-      alert('Error saving ad space');
+      alert('Error saving ad space: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
