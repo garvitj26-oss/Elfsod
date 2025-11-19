@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin-server';
 import { verifyAdminSession } from '@/lib/admin/auth';
 
 export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await verifyAdminSession(request);
@@ -17,9 +17,7 @@ export async function DELETE(
       );
     }
 
-    // Handle both sync and async params (Next.js 15 compatibility)
-    const resolvedParams = await Promise.resolve(params);
-    const { id } = resolvedParams;
+    const { id } = await params;
     // Use admin client (service role) to bypass RLS for admin operations
     let supabase;
     try {
@@ -75,8 +73,8 @@ export async function DELETE(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await verifyAdminSession(request);
@@ -88,9 +86,7 @@ export async function PUT(
       );
     }
 
-    // Handle both sync and async params (Next.js 15 compatibility)
-    const resolvedParams = await Promise.resolve(params);
-    const { id } = resolvedParams;
+    const { id } = await params;
     const body = await request.json();
     const {
       title,
@@ -211,8 +207,8 @@ export async function PUT(
 }
 
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await verifyAdminSession(request);
@@ -224,9 +220,7 @@ export async function GET(
       );
     }
 
-    // Handle both sync and async params (Next.js 15 compatibility)
-    const resolvedParams = await Promise.resolve(params);
-    const { id } = resolvedParams;
+    const { id } = await params;
     // Use admin client (service role) to bypass RLS for admin operations
     let supabase;
     try {
