@@ -231,6 +231,8 @@ export async function POST(request: NextRequest) {
     console.log('📝 Received ad space creation request:', {
       title: body.title,
       categoryId: body.categoryId,
+      locationId: body.locationId || 'not provided',
+      publisherId: body.publisherId || 'not provided',
       hasCoordinates: !!(body.latitude && body.longitude)
     });
     const {
@@ -336,10 +338,16 @@ export async function POST(request: NextRequest) {
     // Optional fields
     if (locationId) {
       adSpaceData.location_id = locationId;
+      console.log('✅ Setting location_id:', locationId);
+    } else {
+      console.warn('⚠️ No locationId provided - location_id will be null');
     }
 
     if (publisherId) {
       adSpaceData.publisher_id = publisherId;
+      console.log('✅ Setting publisher_id:', publisherId);
+    } else {
+      console.log('ℹ️ No publisherId provided - publisher_id will be null (this is optional)');
     }
 
     if (targetAudience) {
