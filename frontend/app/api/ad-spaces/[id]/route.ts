@@ -405,25 +405,78 @@ export async function DELETE(
       }, { status: 404 });
     }
 
+    // Check for related records that might prevent deletion
+    // Note: cart_items and bookings have ON DELETE CASCADE, so they should auto-delete
+    // But let's check if there are any active bookings first
+    const { data: activeBookings, error: bookingCheckError } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('ad_space_id', id)
+      .in('status', ['pending', 'confirmed', 'active'])
+      .limit(1);
+
+    if (bookingCheckError) {
+      console.warn('⚠️ Could not check bookings:', bookingCheckError.message);
+    }
+
+    if (activeBookings && activeBookings.length > 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Cannot delete ad space',
+        details: 'This ad space has active or pending bookings. Please cancel or complete the bookings first.',
+        code: 'HAS_ACTIVE_BOOKINGS'
+      }, { status: 400 });
+    }
+
     // Delete the ad space
-    const { error: deleteError } = await supabase
+    const { data: deletedData, error: deleteError } = await supabase
       .from('ad_spaces')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
 
     if (deleteError) {
-      console.error('❌ Error deleting ad space:', deleteError);
+      console.error('❌ Error deleting ad space:', {
+        message: deleteError.message,
+        details: deleteError.details,
+        hint: deleteError.hint,
+        code: deleteError.code
+      });
+      
+      // Check if it's an RLS policy issue
+      if (deleteError.code === '42501' || deleteError.message?.includes('permission denied') || deleteError.message?.includes('policy')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Permission denied',
+          details: 'Row Level Security (RLS) policy is preventing deletion. Please check your Supabase RLS policies for the ad_spaces table.',
+          code: 'RLS_POLICY_ERROR',
+          hint: deleteError.hint
+        }, { status: 403 });
+      }
+
       return NextResponse.json({
         success: false,
         error: 'Failed to delete ad space',
-        details: deleteError.message
+        details: deleteError.message,
+        hint: deleteError.hint,
+        code: deleteError.code
       }, { status: 500 });
+    }
+
+    // Verify deletion
+    if (!deletedData || deletedData.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Ad space not found or already deleted',
+        details: 'No rows were deleted. The ad space may not exist or may have already been deleted.'
+      }, { status: 404 });
     }
 
     console.log('✅ Ad space deleted successfully:', id);
     return NextResponse.json({
       success: true,
-      message: 'Ad space deleted successfully'
+      message: 'Ad space deleted successfully',
+      deletedId: id
     }, { status: 200 });
 
   } catch (error) {
