@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       .select('id, title, description, category_id');
 
     // Use OR condition to search in both title and description
-    const searchPatterns = keywords.map(k => `%${k}%`).join('|');
+    const searchPatterns = keywords.map((k: string) => `%${k}%`).join('|');
     
     // Get all ad spaces first, then filter in JavaScript for better matching
     const { data: allAdSpaces, error: adSpacesError } = await supabase
