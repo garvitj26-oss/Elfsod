@@ -44,6 +44,8 @@ const CITIES = ['Mumbai', 'Delhi', 'Bengaluru', 'Chennai', 'Kolkata', 'Ahmedabad
 export default function AdminDashboard() {
   const [adSpaces, setAdSpaces] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,6 +58,7 @@ export default function AdminDashboard() {
     location_city: 'Mumbai',
     location_area: '',
     location_address: '',
+    location_id: '', // Selected location ID
     price_per_day: 5000,
     daily_impressions: 10000,
     display_type: 'static_billboard',
@@ -77,6 +80,35 @@ export default function AdminDashboard() {
       setFormData(prev => ({ ...prev, category_id: categories[0].id }));
     }
   }, [categories]);
+
+  // Fetch locations when city changes
+  useEffect(() => {
+    if (isFormOpen && formData.location_city) {
+      fetchLocationsByCity(formData.location_city);
+    }
+  }, [formData.location_city, isFormOpen]);
+
+  const fetchLocationsByCity = async (city: string) => {
+    setLocationsLoading(true);
+    try {
+      const response = await fetch(`/api/locations?city=${encodeURIComponent(city)}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setLocations(result.data);
+          // Auto-select first location if only one exists
+          if (result.data.length === 1 && !formData.location_id) {
+            setFormData(prev => ({ ...prev, location_id: result.data[0].id }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      setLocations([]);
+    } finally {
+      setLocationsLoading(false);
+    }
+  };
 
   const fetchCategories = async () => {
     setCategoriesLoading(true);
@@ -154,50 +186,55 @@ export default function AdminDashboard() {
       
       const coords = cityCoordinates[formData.location_city] || cityCoordinates['Mumbai'];
       
-      // Create or find location first (from public.locations table)
-      let locationId: string | undefined;
-      try {
-        // Use address if provided, otherwise use area, otherwise use city as address
-        const address = formData.location_address || formData.location_area || `${formData.location_city}, India`;
-        
-        // Get state from city (simplified - you might want to add a state field to the form)
-        const cityToState: Record<string, string> = {
-          'Mumbai': 'Maharashtra',
-          'Delhi': 'Delhi',
-          'Bengaluru': 'Karnataka',
-          'Chennai': 'Tamil Nadu',
-          'Kolkata': 'West Bengal',
-          'Ahmedabad': 'Gujarat',
-          'Pune': 'Maharashtra',
-          'Chandigarh': 'Chandigarh',
-          'Kochi': 'Kerala',
-        };
-        const state = cityToState[formData.location_city] || 'Maharashtra';
-        
-        const locationResponse = await fetch('/api/locations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            city: formData.location_city,
-            address: address,
-            state: state,
-            latitude: coords.lat,
-            longitude: coords.lng,
-            country: 'India',
-          }),
-        });
+      // Use selected location_id from form, or create new location if not selected
+      let locationId: string | undefined = formData.location_id || undefined;
+      
+      // If no location is selected, create a new one
+      if (!locationId && formData.location_address) {
+        try {
+          // Get state from city
+          const cityToState: Record<string, string> = {
+            'Mumbai': 'Maharashtra',
+            'Delhi': 'Delhi',
+            'Bengaluru': 'Karnataka',
+            'Chennai': 'Tamil Nadu',
+            'Kolkata': 'West Bengal',
+            'Ahmedabad': 'Gujarat',
+            'Pune': 'Maharashtra',
+            'Chandigarh': 'Chandigarh',
+            'Kochi': 'Kerala',
+          };
+          const state = cityToState[formData.location_city] || 'Maharashtra';
+          
+          const address = formData.location_address || formData.location_area || `${formData.location_city}, India`;
+          
+          const locationResponse = await fetch('/api/locations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              city: formData.location_city,
+              address: address,
+              state: state,
+              latitude: coords.lat,
+              longitude: coords.lng,
+              country: 'India',
+            }),
+          });
 
-        if (locationResponse.ok) {
-          const locationResult = await locationResponse.json();
-          if (locationResult.success && locationResult.data?.id) {
-            locationId = locationResult.data.id;
-            console.log('✅ Location created/found:', locationId);
+          if (locationResponse.ok) {
+            const locationResult = await locationResponse.json();
+            if (locationResult.success && locationResult.data?.id) {
+              locationId = locationResult.data.id;
+              console.log('✅ New location created:', locationId);
+            }
+          } else {
+            console.warn('⚠️ Could not create location, continuing without location_id');
           }
-        } else {
-          console.warn('⚠️ Could not create location, continuing without location_id');
+        } catch (locationError) {
+          console.warn('⚠️ Location creation failed, continuing without location_id:', locationError);
         }
-      } catch (locationError) {
-        console.warn('⚠️ Location creation failed, continuing without location_id:', locationError);
+      } else if (locationId) {
+        console.log('✅ Using selected location_id:', locationId);
       }
       
       // Transform form data to API format
@@ -278,6 +315,7 @@ export default function AdminDashboard() {
       location_city: adSpace.location?.city || 'Mumbai',
       location_area: adSpace.location?.area || '',
       location_address: adSpace.location?.address || '',
+      location_id: adSpace.location_id || '', // Use location_id from ad space
       price_per_day: adSpace.price_per_day || 5000,
       daily_impressions: adSpace.daily_impressions || 10000,
       display_type: adSpace.display_type || 'static_billboard',
@@ -290,6 +328,10 @@ export default function AdminDashboard() {
     });
     setEditingId(adSpace.id);
     setIsFormOpen(true);
+    // Fetch locations for the city when editing
+    if (adSpace.location?.city) {
+      fetchLocationsByCity(adSpace.location.city);
+    }
   };
 
   const resetForm = () => {
@@ -298,6 +340,7 @@ export default function AdminDashboard() {
       location_city: 'Mumbai',
       location_area: '',
       location_address: '',
+      location_id: '', // Reset location_id
       price_per_day: 5000,
       daily_impressions: 10000,
       display_type: 'static_billboard',
@@ -308,6 +351,7 @@ export default function AdminDashboard() {
       availability_status: 'available',
     });
     setEditingId(null);
+    setLocations([]); // Clear locations
   };
 
   const filteredAdSpaces = adSpaces.filter((space) => {
@@ -576,50 +620,99 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Location */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      City *
-                    </label>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    City *
+                  </label>
+                  <select
+                    required
+                    value={formData.location_city}
+                    onChange={(e) => {
+                      setFormData({ ...formData, location_city: e.target.value, location_id: '' });
+                      fetchLocationsByCity(e.target.value);
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
+                  >
+                    {CITIES.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Location Selector - Show locations from database */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Select Location from Database *
+                  </label>
+                  {locationsLoading ? (
+                    <div className="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                      Loading locations...
+                    </div>
+                  ) : locations.length > 0 ? (
                     <select
                       required
-                      value={formData.location_city}
-                      onChange={(e) => setFormData({ ...formData, location_city: e.target.value })}
+                      value={formData.location_id}
+                      onChange={(e) => {
+                        const selectedLocation = locations.find(loc => loc.id === e.target.value);
+                        setFormData({ 
+                          ...formData, 
+                          location_id: e.target.value,
+                          location_address: selectedLocation?.address || formData.location_address,
+                          location_area: selectedLocation?.address?.split(',')[0] || formData.location_area,
+                        });
+                      }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
                     >
-                      {CITIES.map((city) => (
-                        <option key={city} value={city}>
-                          {city}
+                      <option value="">-- Select a location --</option>
+                      {locations.map((location) => (
+                        <option key={location.id} value={location.id}>
+                          {location.address} {location.area ? `(${location.area})` : ''} - {location.city}, {location.state}
                         </option>
                       ))}
                     </select>
-                  </div>
+                  ) : (
+                    <div className="px-4 py-2 border border-gray-300 rounded-lg bg-yellow-50 text-yellow-700 text-sm">
+                      No locations found for {formData.location_city}. A new location will be created when you fill the address below.
+                    </div>
+                  )}
+                </div>
+
+                {/* Address fields - for creating new location if not selected from database */}
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Area *
+                      Area
                     </label>
                     <input
                       type="text"
-                      required
                       value={formData.location_area}
                       onChange={(e) => setFormData({ ...formData, location_area: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
                       placeholder="e.g., MG Road"
+                      disabled={!!formData.location_id} // Disable if location is selected
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.location_address}
-                    onChange={(e) => setFormData({ ...formData, location_address: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
-                    placeholder="Full address"
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Address {!formData.location_id && '*'}
+                    </label>
+                    <input
+                      type="text"
+                      required={!formData.location_id}
+                      value={formData.location_address}
+                      onChange={(e) => setFormData({ ...formData, location_address: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63] disabled:bg-gray-100"
+                      placeholder="Full address"
+                      disabled={!!formData.location_id} // Disable if location is selected
+                    />
+                    {formData.location_id && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Address is set from selected location. To change, select a different location or clear selection.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Price and Impressions */}
