@@ -67,7 +67,7 @@ export default function CheckDataLoadingPage() {
       let categoriesResult = { success: false, count: 0, error: '' };
       try {
         const categories = await getCategories();
-        categoriesResult = { success: true, count: categories.length };
+        categoriesResult = { success: true, count: categories.length, error: '' };
         console.log('✅ Categories:', categories.length, 'categories');
       } catch (error) {
         categoriesResult = {
