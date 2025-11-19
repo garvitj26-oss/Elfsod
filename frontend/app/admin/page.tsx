@@ -18,11 +18,23 @@ interface Category {
   parent_category_id?: string;
 }
 
+interface Location {
+  id: string;
+  city: string;
+  state: string;
+  country: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  area?: string;
+}
+
 interface AdSpaceForm {
   title: string;
   location_city: string;
   location_area: string;
   location_address: string;
+  location_id: string; // Selected location ID from locations table
   price_per_day: number;
   daily_impressions: number;
   display_type: string;
