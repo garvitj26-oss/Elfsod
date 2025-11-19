@@ -65,3 +65,38 @@
 [00:14:53.662] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
 [00:14:53.664] Server  LOG      ✓ Compiled in 73ms
 [00:14:53.664] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:22:06.588] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:22:06.588] Browser LOG     ✅ Fetched 36 ad spaces via API route
+[00:22:06.588] Browser LOG     ✅ Fetched 12 ad spaces via API route
+[00:22:06.596] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:22:06.596] Browser LOG     ✅ Fetched 36 ad spaces via API route
+[00:22:06.596] Browser LOG     ✅ Fetched 12 ad spaces via API route
+[00:22:06.608] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:22:06.608] Browser LOG     ✅ Fetched 36 ad spaces via API route
+[00:22:06.608] Browser LOG     ✅ Fetched 12 ad spaces via API route
+[01:42:49.457] Server  LOG      ✓ Compiled in 55ms
+[00:24:54.153] Server  LOG      ✓ Compiled in 54ms
+[00:24:54.543] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:54.675] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:54.819] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:54.949] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:55.077] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:55.198] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:55.336] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:55.479] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:55.607] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:55.753] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:55.927] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:56.034] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:56.424] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:56.541] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:56.655] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:56.773] Server  ERROR    ⨯ Error: The default export is not a React Component in "/search/page"
+[00:24:56.895] Browser ERROR   uncaughtError: Error: The default export is not a React Component in "/search/page"
+[00:24:56.907] Browser ERROR   uncaughtError: Error: The default export is not a React Component in "/search/page"
+[00:24:56.918] Browser ERROR   uncaughtError: Error: The default export is not a React Component in "/search/page"
+[00:25:14.015] Server  LOG      ✓ Compiled in 130ms
+[01:43:09.282] Server  LOG      ✓ Compiled in 132ms
+[01:43:09.493] Server  ERROR   Error: write EPIPE
+[01:43:09.606] Server  ERROR    ⨯ "uncaughtException:" Error: write EPIPE
+[01:43:09.745] Server  ERROR    ⨯ "uncaughtException: " Error: write EPIPE
