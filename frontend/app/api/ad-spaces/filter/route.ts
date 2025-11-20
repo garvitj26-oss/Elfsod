@@ -66,44 +66,38 @@ export async function GET(request: NextRequest) {
       // So we'll filter after fetching, but ensure location is loaded
     }
 
-    // Filter by category name using exact SQL query:
-    // SELECT * FROM ad_spaces WHERE category_id = (SELECT id FROM categories WHERE name = 'CategoryName')
-    if (categoryName) {
-      // First, get the category ID using exact name match
-      const { data: categoryData, error: categoryError } = await supabase
-        .from('categories')
-        .select('id')
-        .eq('name', categoryName.trim()) // Use exact match, not ilike
-        .maybeSingle();
-      
-      if (categoryError || !categoryData) {
-        // Try case-insensitive if exact match fails
-        const { data: categoryDataCI, error: categoryErrorCI } = await supabase
+    // Priority: categoryIds > parentCategoryName > categoryName
+    // Filter by multiple category IDs (comma-separated) - highest priority for multiple selection
+    if (categoryIds) {
+      const ids = categoryIds.split(',').map(id => id.trim()).filter(id => id);
+      if (ids.length > 0) {
+        // Get all categories to check for parent-child relationships
+        const { data: allCategories } = await supabase
           .from('categories')
-          .select('id')
-          .ilike('name', categoryName.trim())
-          .maybeSingle();
+          .select('id, parent_category_id');
         
-        if (categoryErrorCI || !categoryDataCI) {
-          return NextResponse.json({
-            success: false,
-            error: 'Category not found',
-            details: `No category found with name: ${categoryName}`
-          }, { status: 404 });
-        }
+        const allCategoryIds: string[] = [];
+        ids.forEach((id: string) => {
+          // Add the selected category ID
+          if (!allCategoryIds.includes(id)) {
+            allCategoryIds.push(id);
+          }
+          
+          // If this is a parent category, also include all its child categories
+          const children = (allCategories || []).filter((c: any) => c.parent_category_id === id);
+          children.forEach((child: any) => {
+            if (!allCategoryIds.includes(child.id)) {
+              allCategoryIds.push(child.id);
+            }
+          });
+        });
         
-        query = query.eq('category_id', categoryDataCI.id);
-      } else {
-        query = query.eq('category_id', categoryData.id);
+        console.log(`🔍 Filtering by ${ids.length} selected category IDs (${allCategoryIds.length} total including children):`, allCategoryIds);
+        query = query.in('category_id', allCategoryIds);
       }
     }
-    
-    // Filter by parent category using exact SQL query:
-    // SELECT a.* FROM ad_spaces a
-    // INNER JOIN categories c ON a.category_id = c.id
-    // INNER JOIN categories p ON c.parent_category_id = p.id
-    // WHERE p.name = 'Retail & Commerce'
-    if (parentCategoryName) {
+    // Filter by parent category name (only if categoryIds not provided)
+    else if (parentCategoryName) {
       // Get the parent category ID
       const { data: parentCategoryData, error: parentError } = await supabase
         .from('categories')
@@ -151,34 +145,38 @@ export async function GET(request: NextRequest) {
       console.log(`📂 Parent category "${parentCategoryName}" (ID: ${parentId}) has ${childCategories?.length || 0} child categories:`, childCategories?.map((c: any) => c.name));
       
       // Filter ad spaces by parent category + all child category IDs
-      // This implements: INNER JOIN categories c ON a.category_id = c.id WHERE c.parent_category_id = parentId OR c.id = parentId
       const categoryIdsToFilter = [parentId, ...(childCategories || []).map((c: any) => c.id)];
       console.log(`🔍 Filtering by category IDs:`, categoryIdsToFilter);
       query = query.in('category_id', categoryIdsToFilter);
     }
-
-    // Filter by multiple category IDs (comma-separated)
-    if (categoryIds) {
-      const ids = categoryIds.split(',').map(id => id.trim()).filter(id => id);
-      if (ids.length > 0) {
-        // Get all child categories for each parent category ID
-        const { data: allCategories } = await supabase
+    // Filter by single category name (only if categoryIds and parentCategoryName not provided)
+    else if (categoryName) {
+      // First, get the category ID using exact name match
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', categoryName.trim()) // Use exact match, not ilike
+        .maybeSingle();
+      
+      if (categoryError || !categoryData) {
+        // Try case-insensitive if exact match fails
+        const { data: categoryDataCI, error: categoryErrorCI } = await supabase
           .from('categories')
-          .select('id, parent_category_id');
+          .select('id')
+          .ilike('name', categoryName.trim())
+          .maybeSingle();
         
-        const allCategoryIds: string[] = [];
-        ids.forEach((id: string) => {
-          allCategoryIds.push(id);
-          // Add all child categories
-          const children = (allCategories || []).filter((c: any) => c.parent_category_id === id);
-          children.forEach((child: any) => {
-            if (!allCategoryIds.includes(child.id)) {
-              allCategoryIds.push(child.id);
-            }
-          });
-        });
+        if (categoryErrorCI || !categoryDataCI) {
+          return NextResponse.json({
+            success: false,
+            error: 'Category not found',
+            details: `No category found with name: ${categoryName}`
+          }, { status: 404 });
+        }
         
-        query = query.in('category_id', allCategoryIds);
+        query = query.eq('category_id', categoryDataCI.id);
+      } else {
+        query = query.eq('category_id', categoryData.id);
       }
     }
 
