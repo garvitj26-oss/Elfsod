@@ -55,6 +55,7 @@ export default function LocationDateDropdown({ isOpen, onClose, mode = 'location
     'Chandigarh': { lat: 30.7333, lng: 76.7794 },
     'Kochi': { lat: 9.9312, lng: 76.2673 },
     'Pune': { lat: 18.5204, lng: 73.8567 },
+    'Hyderabad': { lat: 17.3850, lng: 78.4867 },
   };
 
   // Fallback method using city coordinates (when Google API is not available)
