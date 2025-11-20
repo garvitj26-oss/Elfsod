@@ -293,11 +293,24 @@ export default function MapComponent({ adSpaces, onMarkerClick, selectedId, sele
           const isSelected = selectedId === space.id;
           
           // Show traffic circle for all ad spaces, but make selected one more prominent
+          // Calculate radius based on traffic level, max 2km
+          const getTrafficRadius = (level: string) => {
+            switch (level) {
+              case 'very_high': return 2000; // 2km
+              case 'high': return 1500; // 1.5km
+              case 'moderate': return 1000; // 1km
+              case 'low': return 500; // 500m
+              default: return 1000; // 1km default
+            }
+          };
+          
+          const trafficRadius = Math.min(getTrafficRadius(displayLevel), 2000); // Max 2km
+          
           return (
             <Circle
               key={`traffic-${space.id}`}
               center={[space.latitude, space.longitude]}
-              radius={500} // 500m radius
+              radius={trafficRadius} // Dynamic radius, max 2km
               pathOptions={{
                 color: colors.color,
                 fillColor: colors.fillColor,

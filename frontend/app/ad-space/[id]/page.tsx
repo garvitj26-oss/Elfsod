@@ -63,12 +63,25 @@ function TrafficCircle({ adSpace }: { adSpace: AdSpace }) {
   const colors = getTrafficColor(displayLevel);
   const isEstimated = !trafficLevel || trafficLevel === 'unknown';
   
+  // Calculate radius based on traffic level, max 2km
+  const getTrafficRadius = (level: string) => {
+    switch (level) {
+      case 'very_high': return 2000; // 2km
+      case 'high': return 1500; // 1.5km
+      case 'moderate': return 1000; // 1km
+      case 'low': return 500; // 500m
+      default: return 1000; // 1km default
+    }
+  };
+  
+  const trafficRadius = Math.min(getTrafficRadius(displayLevel), 2000); // Max 2km
+  
   // Always render the circle
   return (
     <Circle
       key={`traffic-${adSpace.id}`}
       center={[adSpace.latitude, adSpace.longitude]}
-      radius={500} // 500m radius for traffic visualization
+      radius={trafficRadius} // Dynamic radius, max 2km
       pathOptions={{
         color: colors.color,
         fillColor: colors.fillColor,

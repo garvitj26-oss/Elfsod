@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, CheckCircle, Eye, Users, Navigation } from 'lucide-react';
+import { MapPin, CheckCircle, Eye, Users, Navigation, TrendingUp } from 'lucide-react';
 import { AdSpace } from '@/types';
 import Link from 'next/link';
 
@@ -160,6 +160,44 @@ export default function AdSpaceCard({ adSpace, variant = 'default' }: AdSpaceCar
               <Users className="w-3.5 h-3.5" />
               <span>{formatMetric(adSpace.monthly_footfall)}</span>
             </div>
+            {/* Traffic Level Badge */}
+            {adSpace.traffic_data && (() => {
+              const trafficLevel = adSpace.traffic_data.traffic_level;
+              const nearbyPlaces = adSpace.traffic_data.nearby_places_count;
+              
+              // Determine display level
+              let displayLevel = trafficLevel;
+              if (!displayLevel || displayLevel === 'unknown') {
+                if (nearbyPlaces !== undefined) {
+                  if (nearbyPlaces > 20) displayLevel = 'high';
+                  else if (nearbyPlaces > 10) displayLevel = 'moderate';
+                  else displayLevel = 'low';
+                } else {
+                  displayLevel = 'moderate';
+                }
+              }
+              
+              const getTrafficBadgeColor = (level: string) => {
+                switch (level) {
+                  case 'very_high': return 'bg-green-100 text-green-700 border-green-200';
+                  case 'high': return 'bg-blue-100 text-blue-700 border-blue-200';
+                  case 'moderate': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                  case 'low': return 'bg-gray-100 text-gray-700 border-gray-200';
+                  default: return 'bg-gray-100 text-gray-700 border-gray-200';
+                }
+              };
+              
+              const isEstimated = !trafficLevel || trafficLevel === 'unknown';
+              
+              return (
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-md border ${getTrafficBadgeColor(displayLevel)}`}>
+                  <TrendingUp className="w-3 h-3" />
+                  <span className="font-medium capitalize text-[10px]">
+                    {displayLevel} {isEstimated && '(Est)'}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
           
           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
