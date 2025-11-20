@@ -31,6 +31,80 @@ const Popup = dynamic(
   { ssr: false }
 );
 
+// Traffic Circle Component - Always renders
+function TrafficCircle({ adSpace }: { adSpace: AdSpace }) {
+  const trafficLevel = adSpace.traffic_data?.traffic_level;
+  const nearbyPlaces = adSpace.traffic_data?.nearby_places_count;
+  
+  // Determine traffic level: use actual level, or estimate from nearby places, or default to moderate
+  let displayLevel = trafficLevel;
+  if (!displayLevel || displayLevel === 'unknown') {
+    // Estimate from nearby places count
+    if (nearbyPlaces !== undefined) {
+      if (nearbyPlaces > 20) displayLevel = 'high';
+      else if (nearbyPlaces > 10) displayLevel = 'moderate';
+      else if (nearbyPlaces > 5) displayLevel = 'moderate';
+      else displayLevel = 'low';
+    } else {
+      displayLevel = 'moderate'; // Default - always show something
+    }
+  }
+  
+  const getTrafficColor = (level: string) => {
+    switch (level) {
+      case 'very_high': return { color: '#10B981', fillColor: '#10B981' };
+      case 'high': return { color: '#3B82F6', fillColor: '#3B82F6' };
+      case 'moderate': return { color: '#F59E0B', fillColor: '#F59E0B' };
+      case 'low': return { color: '#6B7280', fillColor: '#6B7280' };
+      default: return { color: '#9CA3AF', fillColor: '#9CA3AF' };
+    }
+  };
+  
+  const colors = getTrafficColor(displayLevel);
+  const isEstimated = !trafficLevel || trafficLevel === 'unknown';
+  
+  // Always render the circle
+  return (
+    <Circle
+      key={`traffic-${adSpace.id}`}
+      center={[adSpace.latitude, adSpace.longitude]}
+      radius={500} // 500m radius for traffic visualization
+      pathOptions={{
+        color: colors.color,
+        fillColor: colors.fillColor,
+        fillOpacity: 0.25, // Increased opacity for better visibility
+        weight: 4, // Increased weight for better visibility
+        dashArray: isEstimated ? '8, 4' : undefined, // Dashed if estimated
+      }}
+    >
+      <Popup>
+        <div className="p-2">
+          <p className="font-semibold text-sm">Traffic Level {isEstimated && '(Estimated)'}</p>
+          <p className="text-xs text-gray-600 capitalize">{displayLevel} Traffic</p>
+          {adSpace.traffic_data?.average_daily_visitors ? (
+            <p className="text-xs text-gray-500 mt-1">
+              ~{adSpace.traffic_data.average_daily_visitors.toLocaleString()} daily visitors
+            </p>
+          ) : nearbyPlaces !== undefined ? (
+            <p className="text-xs text-gray-500 mt-1">
+              {nearbyPlaces} nearby places
+            </p>
+          ) : (
+            <p className="text-xs text-gray-500 mt-1">
+              Default traffic zone
+            </p>
+          )}
+          {isEstimated && (
+            <p className="text-xs text-yellow-600 mt-1 italic">
+              Click refresh to load actual traffic data
+            </p>
+          )}
+        </div>
+      </Popup>
+    </Circle>
+  );
+}
+
 export default function AdSpaceDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -562,75 +636,10 @@ export default function AdSpaceDetailPage() {
                         </Circle>
                       )}
                       
-                      {/* Traffic Level Circle - Visual indicator */}
-                      {/* Always show traffic circle, use nearby_places_count or default if traffic_level is unknown */}
-                      {(() => {
-                        const trafficLevel = adSpace.traffic_data?.traffic_level;
-                        const nearbyPlaces = adSpace.traffic_data?.nearby_places_count;
-                        
-                        // Determine traffic level: use actual level, or estimate from nearby places, or default to moderate
-                        let displayLevel = trafficLevel;
-                        if (!displayLevel || displayLevel === 'unknown') {
-                          // Estimate from nearby places count
-                          if (nearbyPlaces !== undefined) {
-                            if (nearbyPlaces > 20) displayLevel = 'high';
-                            else if (nearbyPlaces > 10) displayLevel = 'moderate';
-                            else if (nearbyPlaces > 5) displayLevel = 'moderate';
-                            else displayLevel = 'low';
-                          } else {
-                            displayLevel = 'moderate'; // Default
-                          }
-                        }
-                        
-                        const getTrafficColor = (level: string) => {
-                          switch (level) {
-                            case 'very_high': return { color: '#10B981', fillColor: '#10B981' };
-                            case 'high': return { color: '#3B82F6', fillColor: '#3B82F6' };
-                            case 'moderate': return { color: '#F59E0B', fillColor: '#F59E0B' };
-                            case 'low': return { color: '#6B7280', fillColor: '#6B7280' };
-                            default: return { color: '#9CA3AF', fillColor: '#9CA3AF' };
-                          }
-                        };
-                        
-                        const colors = getTrafficColor(displayLevel);
-                        const isEstimated = !trafficLevel || trafficLevel === 'unknown';
-                        
-                        return (
-                          <Circle
-                            key={`traffic-${adSpace.id}`}
-                            center={[adSpace.latitude, adSpace.longitude]}
-                            radius={500} // 500m radius for traffic visualization
-                            pathOptions={{
-                              color: colors.color,
-                              fillColor: colors.fillColor,
-                              fillOpacity: 0.2,
-                              weight: 3,
-                              dashArray: isEstimated ? '5, 5' : undefined, // Dashed if estimated
-                            }}
-                          >
-                            <Popup>
-                              <div className="p-2">
-                                <p className="font-semibold text-sm">Traffic Level {isEstimated && '(Estimated)'}</p>
-                                <p className="text-xs text-gray-600 capitalize">{displayLevel} Traffic</p>
-                                {adSpace.traffic_data?.average_daily_visitors ? (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    ~{adSpace.traffic_data.average_daily_visitors.toLocaleString()} daily visitors
-                                  </p>
-                                ) : nearbyPlaces !== undefined ? (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {nearbyPlaces} nearby places
-                                  </p>
-                                ) : null}
-                                {isEstimated && (
-                                  <p className="text-xs text-yellow-600 mt-1 italic">
-                                    Click refresh to load actual traffic data
-                                  </p>
-                                )}
-                              </div>
-                            </Popup>
-                          </Circle>
-                        );
-                      })()}
+                      {/* Traffic Level Circle - Visual indicator - ALWAYS SHOW */}
+                      <TrafficCircle 
+                        adSpace={adSpace}
+                      />
                       
                       {/* Main Ad Space Marker */}
                       <Marker 
