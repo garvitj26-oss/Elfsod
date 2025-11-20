@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Next.js 15: params is now a Promise that must be awaited
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
