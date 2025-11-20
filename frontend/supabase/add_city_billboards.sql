@@ -34,8 +34,19 @@ INSERT INTO locations (id, city, state, country, address, latitude, longitude) V
 ('del_loc_001', 'Delhi', 'Delhi', 'India', 'Saket Metro, Delhi', 28.5236, 77.2193)
 ON CONFLICT (id) DO NOTHING;
 
--- Step 3: Insert ad spaces (using subquery to get category ID)
-INSERT INTO ad_spaces (
+-- Step 3: Insert ad spaces
+DO $$
+DECLARE
+  billboards_category_id UUID;
+BEGIN
+  -- Get the Billboards category ID
+  SELECT id INTO billboards_category_id 
+  FROM categories 
+  WHERE name ILIKE '%billboard%' 
+  LIMIT 1;
+  
+  -- Insert ad spaces
+  INSERT INTO ad_spaces (
     id,
     title,
     description,
@@ -59,7 +70,7 @@ INSERT INTO ad_spaces (
     'hyd_billboard_001',
     'Madhapur Metro Station',
     'High-visibility static billboard in the heart of the IT Hub, Hyderabad.',
-    (SELECT id FROM categories WHERE name ILIKE '%billboard%' LIMIT 1),
+    billboards_category_id,
     'hyd_loc_001',
     NULL,
     'static_billboard',
@@ -79,7 +90,7 @@ INSERT INTO ad_spaces (
     'hyd_billboard_002',
     'Begumpet Flyover',
     'Prominent static billboard on Begumpet Flyover, Hyderabad.',
-    (SELECT id FROM categories WHERE name ILIKE '%billboard%' LIMIT 1),
+    billboards_category_id,
     'hyd_loc_002',
     NULL,
     'static_billboard',
@@ -99,7 +110,7 @@ INSERT INTO ad_spaces (
     'hyd_billboard_003',
     'Kukatpally Main Road',
     'Busy commuter spot with premium static billboard.',
-    (SELECT id FROM categories WHERE name ILIKE '%billboard%' LIMIT 1),
+    billboards_category_id,
     'hyd_loc_003',
     NULL,
     'static_billboard',
@@ -119,7 +130,7 @@ INSERT INTO ad_spaces (
     'mum_billboard_001',
     'Andheri East',
     'Strategic static billboard placement at Andheri East, Mumbai.',
-    (SELECT id FROM categories WHERE name ILIKE '%billboard%' LIMIT 1),
+    billboards_category_id,
     'mum_loc_001',
     NULL,
     'static_billboard',
@@ -139,7 +150,7 @@ INSERT INTO ad_spaces (
     'del_billboard_001',
     'Saket Metro',
     'Large format static billboard at Saket Metro, Delhi.',
-    (SELECT id FROM categories WHERE name ILIKE '%billboard%' LIMIT 1),
+    billboards_category_id,
     'del_loc_001',
     NULL,
     'static_billboard',
@@ -171,6 +182,7 @@ INSERT INTO ad_spaces (
     images = EXCLUDED.images,
     dimensions = EXCLUDED.dimensions,
     updated_at = NOW();
+END $$;
 
 -- Verify the insertions
 SELECT 
