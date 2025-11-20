@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, MapPin, DollarSign, Users, TrendingUp, CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -23,7 +23,7 @@ interface AdSpaceSuggestion {
   estimatedCost: number;
 }
 
-export default function RecommendationsPage() {
+function RecommendationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -276,6 +276,24 @@ export default function RecommendationsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function RecommendationsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 text-[#E91E63] animate-spin mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Recommendations...</h2>
+            <p className="text-gray-600">Preparing your personalized ad space suggestions</p>
+          </div>
+        </div>
+      }
+    >
+      <RecommendationsContent />
+    </Suspense>
   );
 }
 
