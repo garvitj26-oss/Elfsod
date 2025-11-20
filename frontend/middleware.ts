@@ -8,43 +8,74 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, {
-              ...options,
-              sameSite: 'lax',
-              path: '/',
-            });
-          });
-        },
-      },
-    }
-  );
+  const path = request.nextUrl.pathname;
 
-  // Get user - this uses the same token from cookies
-  // The session is synced from localStorage to cookies by Supabase SSR
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Check if Supabase environment variables are configured
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    // If env vars are missing, allow request to proceed without auth checks
+    // This prevents middleware from crashing during deployment
+    console.warn('⚠️ Supabase environment variables not configured in middleware. Skipping auth checks.');
+    return response;
+  }
+
+  let user = null;
+  let supabase = null;
+
+  try {
+    supabase = createServerClient(
+      supabaseUrl,
+      supabaseKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
+            response = NextResponse.next({
+              request,
+            });
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, {
+                ...options,
+                sameSite: 'lax',
+                path: '/',
+              });
+            });
+          },
+        },
+      }
+    );
+
+    // Get user - this uses the same token from cookies
+    // The session is synced from localStorage to cookies by Supabase SSR
+    try {
+      const {
+        data: { user: userData },
+        error: userError,
+      } = await supabase.auth.getUser();
+      
+      if (!userError && userData) {
+        user = userData;
+      }
+    } catch (authError) {
+      // If auth check fails, continue without user (allow public access)
+      console.warn('⚠️ Failed to get user in middleware:', authError);
+    }
+  } catch (error) {
+    // If Supabase client creation fails, log and continue without auth
+    console.error('❌ Middleware Supabase error:', error);
+    // Return response to allow request to proceed
+    return response;
+  }
   
   // Session is automatically managed by Supabase SSR middleware
   // No need to manually refresh as cookies are kept in sync
-
-  const path = request.nextUrl.pathname;
 
   // Public paths that don't require authentication (browsing allowed)
   const publicPaths = [
@@ -90,15 +121,21 @@ export async function middleware(request: NextRequest) {
   // No middleware redirects - let the component handle auth checks
 
   // Legacy admin routes - requires admin role from users table
-  if (user && path.startsWith('/admin') && !path.startsWith('/admin-portal')) {
-    const { data: userData } = await supabase
-      .from('users')
-      .select('user_type')
-      .eq('id', user.id)
-      .single();
+  if (user && supabase && path.startsWith('/admin') && !path.startsWith('/admin-portal')) {
+    try {
+      const { data: userData, error: dbError } = await supabase
+        .from('users')
+        .select('user_type')
+        .eq('id', user.id)
+        .single();
 
-    if (!userData || userData.user_type !== 'admin') {
-      // Redirect to home if not admin
+      if (dbError || !userData || userData.user_type !== 'admin') {
+        // Redirect to home if not admin or if query fails
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+    } catch (error) {
+      // If admin check fails, redirect to home for safety
+      console.error('❌ Middleware admin check error:', error);
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
