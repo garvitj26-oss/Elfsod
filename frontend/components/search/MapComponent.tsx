@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, ZoomControl, CircleMarker } from 'react-leaflet';
 import { AdSpace } from '@/types';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -292,50 +292,125 @@ export default function MapComponent({ adSpaces, onMarkerClick, selectedId, sele
           const isEstimated = !trafficLevel || trafficLevel === 'unknown';
           const isSelected = selectedId === space.id;
           
-          // Show traffic circle for all ad spaces, but make selected one more prominent
-          // Calculate radius based on traffic level, max 2km
-          const getTrafficRadius = (level: string) => {
-            switch (level) {
-              case 'very_high': return 2000; // 2km
-              case 'high': return 1500; // 1.5km
-              case 'moderate': return 1000; // 1km
-              case 'low': return 500; // 500m
-              default: return 1000; // 1km default
+          // Show traffic circle for all ad spaces - fixed 1km radius
+          const trafficRadius = 1000; // Fixed 1km radius
+          
+          // Get traffic size/amount for display
+          const getTrafficSize = () => {
+            if (space.traffic_data?.average_daily_visitors) {
+              const visitors = space.traffic_data.average_daily_visitors;
+              if (visitors >= 1000) return `${(visitors / 1000).toFixed(1)}K`;
+              return visitors.toString();
             }
+            if (space.daily_impressions && space.daily_impressions > 0) {
+              const impressions = space.daily_impressions;
+              if (impressions >= 1000) return `${(impressions / 1000).toFixed(1)}K`;
+              return impressions.toString();
+            }
+            if (nearbyPlaces !== undefined) {
+              return `${nearbyPlaces} places`;
+            }
+            return null;
           };
           
-          const trafficRadius = Math.min(getTrafficRadius(displayLevel), 2000); // Max 2km
+          const trafficSize = getTrafficSize();
+          
+          // Create text label icon for traffic size
+          const createTrafficLabelIcon = (text: string | null, level: string, isSelected: boolean) => {
+            if (!text) return null;
+            
+            const bgColor = level === 'very_high' ? '#10B981' :
+                           level === 'high' ? '#3B82F6' :
+                           level === 'moderate' ? '#F59E0B' : '#6B7280';
+            
+            const iconSize = isSelected ? 60 : 50;
+            const fontSize = isSelected ? '14px' : '12px';
+            
+            const svgIcon = `
+              <div style="
+                background: ${bgColor};
+                color: white;
+                border-radius: 50%;
+                width: ${iconSize}px;
+                height: ${iconSize}px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: ${fontSize};
+                border: 3px solid white;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                text-align: center;
+                line-height: 1;
+              ">
+                ${text}
+              </div>
+            `;
+            
+            return L.divIcon({
+              html: svgIcon,
+              className: 'traffic-label-marker',
+              iconSize: [iconSize, iconSize],
+              iconAnchor: [iconSize / 2, iconSize / 2],
+            });
+          };
+          
+          const labelIcon = trafficSize ? createTrafficLabelIcon(trafficSize, displayLevel, isSelected) : null;
           
           return (
-            <Circle
-              key={`traffic-${space.id}`}
-              center={[space.latitude, space.longitude]}
-              radius={trafficRadius} // Dynamic radius, max 2km
-              pathOptions={{
-                color: colors.color,
-                fillColor: colors.fillColor,
-                fillOpacity: isSelected ? 0.25 : 0.15, // More visible when selected
-                weight: isSelected ? 4 : 2, // Thicker when selected
-                dashArray: isEstimated ? '8, 4' : undefined,
-              }}
-            >
-              <Popup>
-                <div className="p-2">
-                  <p className="font-semibold text-sm">{space.title}</p>
-                  <p className="font-semibold text-xs mt-1">Traffic Level {isEstimated && '(Estimated)'}</p>
-                  <p className="text-xs text-gray-600 capitalize">{displayLevel} Traffic</p>
-                  {space.traffic_data?.average_daily_visitors ? (
-                    <p className="text-xs text-gray-500 mt-1">
-                      ~{space.traffic_data.average_daily_visitors.toLocaleString()} daily visitors
-                    </p>
-                  ) : nearbyPlaces !== undefined ? (
-                    <p className="text-xs text-gray-500 mt-1">
-                      {nearbyPlaces} nearby places
-                    </p>
-                  ) : null}
-                </div>
-              </Popup>
-            </Circle>
+            <>
+              <Circle
+                key={`traffic-${space.id}`}
+                center={[space.latitude, space.longitude]}
+                radius={trafficRadius} // Fixed 1km radius
+                pathOptions={{
+                  color: colors.color,
+                  fillColor: colors.fillColor,
+                  fillOpacity: isSelected ? 0.25 : 0.15, // More visible when selected
+                  weight: isSelected ? 4 : 2, // Thicker when selected
+                  dashArray: isEstimated ? '8, 4' : undefined,
+                }}
+              >
+                <Popup>
+                  <div className="p-2">
+                    <p className="font-semibold text-sm">{space.title}</p>
+                    <p className="font-semibold text-xs mt-1">Traffic Level {isEstimated && '(Estimated)'}</p>
+                    <p className="text-xs text-gray-600 capitalize">{displayLevel} Traffic</p>
+                    {space.traffic_data?.average_daily_visitors ? (
+                      <p className="text-xs text-gray-500 mt-1">
+                        ~{space.traffic_data.average_daily_visitors.toLocaleString()} daily visitors
+                      </p>
+                    ) : nearbyPlaces !== undefined ? (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {nearbyPlaces} nearby places
+                      </p>
+                    ) : null}
+                  </div>
+                </Popup>
+              </Circle>
+              
+              {/* Traffic size label marker at center */}
+              {labelIcon && (
+                <Marker
+                  key={`traffic-label-${space.id}`}
+                  position={[space.latitude, space.longitude]}
+                  icon={labelIcon}
+                  zIndexOffset={1000} // Ensure it's above the circle
+                >
+                  <Popup>
+                    <div className="p-2">
+                      <p className="font-semibold text-sm">{space.title}</p>
+                      <p className="text-xs text-gray-600 capitalize">{displayLevel} Traffic</p>
+                      {trafficSize && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Traffic: {trafficSize}
+                        </p>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+            </>
           );
         })}
         
