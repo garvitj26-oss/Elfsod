@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 /**
  * Next.js API route to fetch categories
  * GET /api/categories?city=Mumbai
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // Get city parameter from query string
     const { searchParams } = new URL(request.url);
@@ -152,7 +152,7 @@ export async function GET(request: Request) {
  *   icon_url?: string
  * }
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     let supabase;
     try {

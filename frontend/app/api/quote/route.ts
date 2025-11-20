@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import * as brevo from '@getbrevo/brevo';
 import { createQuoteRequest } from '@/lib/supabase/services/quoteRequests';
@@ -30,7 +30,7 @@ interface QuoteRequest {
   quoteRequestId?: string;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body: QuoteRequest = await request.json();
     const { items, subtotal, tax, total, promoCode, quoteRequestId } = body;
