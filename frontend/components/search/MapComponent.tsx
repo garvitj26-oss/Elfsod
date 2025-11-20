@@ -292,9 +292,7 @@ export default function MapComponent({ adSpaces, onMarkerClick, selectedId, sele
           const isEstimated = !trafficLevel || trafficLevel === 'unknown';
           const isSelected = selectedId === space.id;
           
-          // Only show traffic circle for selected ad space to avoid clutter
-          if (!isSelected) return null;
-          
+          // Show traffic circle for all ad spaces, but make selected one more prominent
           return (
             <Circle
               key={`traffic-${space.id}`}
@@ -303,14 +301,15 @@ export default function MapComponent({ adSpaces, onMarkerClick, selectedId, sele
               pathOptions={{
                 color: colors.color,
                 fillColor: colors.fillColor,
-                fillOpacity: 0.2,
-                weight: 3,
+                fillOpacity: isSelected ? 0.25 : 0.15, // More visible when selected
+                weight: isSelected ? 4 : 2, // Thicker when selected
                 dashArray: isEstimated ? '8, 4' : undefined,
               }}
             >
               <Popup>
                 <div className="p-2">
-                  <p className="font-semibold text-sm">Traffic Level {isEstimated && '(Estimated)'}</p>
+                  <p className="font-semibold text-sm">{space.title}</p>
+                  <p className="font-semibold text-xs mt-1">Traffic Level {isEstimated && '(Estimated)'}</p>
                   <p className="text-xs text-gray-600 capitalize">{displayLevel} Traffic</p>
                   {space.traffic_data?.average_daily_visitors ? (
                     <p className="text-xs text-gray-500 mt-1">
