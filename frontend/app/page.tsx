@@ -206,7 +206,7 @@ export default function HomePage() {
     }
   };
 
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
@@ -307,44 +307,36 @@ export default function HomePage() {
   const displayCategories = categories.length > 0 ? categories : [];
 
   const handleCategoryClick = async (categoryId: string, categoryName?: string) => {
-    // Toggle selection: if clicking the same category, deselect it
-    if (selectedCategory === categoryId) {
-      setSelectedCategory(null);
-      setLoading(true);
-      
-      // Fetch all ad spaces (reset filter)
-      try {
-        await fetchAdSpaces();
-        console.log('✅ Category deselected - showing all ad spaces');
-      } catch (error) {
-        console.error('Error fetching all ad spaces:', error);
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-    
-    // Select new category
-    setSelectedCategory(categoryId);
     setLoading(true);
     
+    // Toggle category selection
+    let newSelectedCategories: string[];
+    if (selectedCategories.includes(categoryId)) {
+      // Deselect category
+      newSelectedCategories = selectedCategories.filter(id => id !== categoryId);
+    } else {
+      // Add category to selection
+      newSelectedCategories = [...selectedCategories, categoryId];
+    }
+    
+    setSelectedCategories(newSelectedCategories);
+    
     try {
-      // Check if this is a parent category (has no parent_category_id)
-      const clickedCategory = categories.find(cat => cat.id === categoryId);
-      const isParentCategory = clickedCategory && (clickedCategory.parent_category_id === null || clickedCategory.parent_category_id === undefined);
-      
-      // Use the filter API to filter ad spaces by category
-      const params = new URLSearchParams();
-      if (categoryName) {
-        // If it's a parent category, use parentCategoryName, otherwise use categoryName
-        if (isParentCategory) {
-          params.append('parentCategoryName', categoryName);
-        } else {
-          params.append('categoryName', categoryName);
-        }
-      } else {
-        params.append('categoryIds', categoryId);
+      // If no categories selected, show all ad spaces
+      if (newSelectedCategories.length === 0) {
+        await fetchAdSpaces();
+        console.log('✅ All categories deselected - showing all ad spaces');
+        return;
       }
+      
+      // Filter by multiple categories using categoryIds (API supports comma-separated IDs)
+      const params = new URLSearchParams();
+      
+      // Use categoryIds for multiple selection (API already supports this)
+      if (newSelectedCategories.length > 0) {
+        params.append('categoryIds', newSelectedCategories.join(','));
+      }
+      
       if (selectedCity) {
         params.append('city', selectedCity);
       }
@@ -357,9 +349,9 @@ export default function HomePage() {
         if (result.success && result.data) {
           setAdSpaces(result.data);
           setFilteredAdSpaces(result.data);
-          console.log('✅ Filtered', result.data.length, 'ad spaces by', isParentCategory ? 'parent category' : 'category', ':', categoryName || categoryId);
+          console.log('✅ Filtered', result.data.length, 'ad spaces by', newSelectedCategories.length, 'categories');
         } else {
-          console.warn('⚠️ No ad spaces found for category:', categoryName || categoryId);
+          console.warn('⚠️ No ad spaces found for selected categories');
           setAdSpaces([]);
           setFilteredAdSpaces([]);
         }
@@ -486,21 +478,21 @@ export default function HomePage() {
                     key={category.id}
                     onClick={() => handleCategoryClick(category.id, category.name)}
                     className={`w-full p-6 rounded-xl border-2 transition-all duration-300 group relative overflow-hidden flex flex-col items-center justify-center transform hover:scale-105 hover:shadow-lg ${
-                      selectedCategory === category.id 
+                      selectedCategories.includes(category.id)
                         ? 'border-[#E91E63] bg-gradient-to-br from-[#E91E63]/10 to-[#E91E63]/5 shadow-md scale-105' 
                         : 'bg-white border-gray-200 hover:border-[#E91E63]/50 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white'
                     }`}
                   >
                     {/* Background gradient effect on hover */}
                     <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                      selectedCategory === category.id 
+                      selectedCategories.includes(category.id)
                         ? 'opacity-100 bg-gradient-to-br from-[#E91E63]/5 to-transparent' 
                         : 'bg-gradient-to-br from-[#E91E63]/5 to-transparent'
                     }`}></div>
                     
                     {/* Icon container with better styling */}
                     <div className={`relative z-10 w-16 h-16 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
-                      selectedCategory === category.id 
+                      selectedCategories.includes(category.id)
                         ? 'bg-gradient-to-br from-[#E91E63] to-[#F50057] shadow-lg shadow-[#E91E63]/30' 
                         : 'bg-gradient-to-br from-gray-100 to-gray-50 group-hover:from-[#E91E63]/10 group-hover:to-[#E91E63]/5'
                     }`}>
@@ -509,7 +501,7 @@ export default function HomePage() {
                           src={category.icon_url} 
                           alt={category.name}
                           className={`w-10 h-10 object-contain transition-transform duration-300 ${
-                            selectedCategory === category.id ? 'brightness-0 invert' : 'group-hover:scale-110'
+                            selectedCategories.includes(category.id) ? 'brightness-0 invert' : 'group-hover:scale-110'
                           }`}
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
@@ -519,7 +511,7 @@ export default function HomePage() {
                         />
                       ) : null}
                       <span className={`text-3xl category-emoji ${category.icon_url ? 'hidden' : ''} ${
-                        selectedCategory === category.id ? 'filter brightness-0 invert' : ''
+                        selectedCategories.includes(category.id) ? 'filter brightness-0 invert' : ''
                       }`}>
                         {category.emoji || '📍'}
                       </span>
@@ -527,7 +519,7 @@ export default function HomePage() {
                     
                     {/* Category name */}
                     <h3 className={`relative z-10 font-bold text-center text-sm leading-tight mb-2 px-2 min-h-[3rem] flex items-center justify-center ${
-                      selectedCategory === category.id 
+                      selectedCategories.includes(category.id)
                         ? 'text-[#E91E63]' 
                         : 'text-gray-900 group-hover:text-[#E91E63]'
                     }`}>
@@ -536,7 +528,7 @@ export default function HomePage() {
                     
                     {/* Count badge */}
                     <div className={`relative z-10 inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                      selectedCategory === category.id 
+                      selectedCategories.includes(category.id)
                         ? 'bg-[#E91E63] text-white' 
                         : 'bg-gray-100 text-gray-700 group-hover:bg-[#E91E63]/10 group-hover:text-[#E91E63]'
                     }`}>
@@ -544,7 +536,7 @@ export default function HomePage() {
                     </div>
                     
                     {/* Selection indicator */}
-                    {selectedCategory === category.id && (
+                    {selectedCategories.includes(category.id) && (
                       <div className="absolute top-2 right-2 w-3 h-3 bg-[#E91E63] rounded-full border-2 border-white shadow-lg"></div>
                     )}
                     
