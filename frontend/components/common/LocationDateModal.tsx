@@ -24,6 +24,7 @@ const cities = [
   { id: 'Kolkata', name: 'Kolkata', icon: '🏛️' },
   { id: 'Kochi', name: 'Kochi', icon: '🌴' },
   { id: 'Pune', name: 'Pune', icon: '🏛️' },
+  { id: 'Hyderabad', name: 'Hyderabad', icon: '🏛️' },
 ];
 
 export default function LocationDateModal({ isOpen, onClose, onSearch, initialTab = 'location' }: LocationDateModalProps) {
@@ -51,6 +52,7 @@ export default function LocationDateModal({ isOpen, onClose, onSearch, initialTa
     'Chandigarh': { lat: 30.7333, lng: 76.7794 },
     'Kochi': { lat: 9.9312, lng: 76.2673 },
     'Pune': { lat: 18.5204, lng: 73.8567 },
+    'Hyderabad': { lat: 17.3850, lng: 78.4867 },
   };
 
   const getCityFromCoordinates = async (lat: number, lng: number): Promise<string | null> => {

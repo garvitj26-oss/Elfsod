@@ -9,9 +9,14 @@ Your Google Cloud project needs to have the following APIs enabled:
    - Enable at: https://console.cloud.google.com/apis/library/geocoding-backend.googleapis.com
 
 ### 2. **Places API (New)**
-   - Used for: City autocomplete suggestions when typing
+   - Used for: 
+     - City autocomplete suggestions when typing
+     - **Nearby Search** - Finding places near ad space locations
+     - **Place Details** - Getting detailed information about places
+     - **Traffic Insights** - Estimating visitor traffic and peak hours
    - Enable at: https://console.cloud.google.com/apis/library/places-backend.googleapis.com
    - **Note**: Make sure to enable "Places API (New)" not the old "Places API"
+   - **Important**: The Places API (New) includes Nearby Search, Place Details, and Autocomplete - you don't need separate APIs
 
 ## Step-by-Step Setup
 
@@ -21,7 +26,14 @@ Your Google Cloud project needs to have the following APIs enabled:
 3. Navigate to **APIs & Services** > **Library**
 4. Search for and enable:
    - **Geocoding API**
-   - **Places API (New)**
+   - **Places API (New)** ⭐ (This includes Nearby Search, Place Details, and Autocomplete)
+
+**Note**: There is NO separate "Nearby Search API". Nearby Search is a feature included in the **Places API (New)**. When you enable Places API (New), you automatically get access to:
+- Nearby Search
+- Place Details
+- Place Autocomplete
+- Place Photos
+- And other Places features
 
 ### Step 2: Create API Key
 1. Go to **APIs & Services** > **Credentials**
@@ -33,11 +45,13 @@ Your Google Cloud project needs to have the following APIs enabled:
 2. Under **API restrictions**, select **Restrict key**
 3. Check only:
    - **Geocoding API**
-   - **Places API (New)**
+   - **Places API (New)** ⭐ (This enables Nearby Search automatically)
 4. Under **Application restrictions**:
    - For development: Select **None** (or **HTTP referrers** with your localhost)
    - For production: Select **HTTP referrers** and add your domain
 5. Click **Save**
+
+**Important**: You only need to enable "Places API (New)" - Nearby Search is included in it!
 
 ### Step 4: Enable Billing
 ⚠️ **Important**: Google Maps APIs require billing to be enabled (even for free tier)

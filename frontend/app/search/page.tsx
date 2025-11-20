@@ -9,6 +9,7 @@ import { AdSpace } from '@/types';
 import { useCartStore } from '@/store/useCartStore';
 import { useLocationStore } from '@/store/useLocationStore';
 import { useCampaignDatesStore } from '@/store/useCampaignDatesStore';
+import { useFilterStore } from '@/store/useFilterStore';
 import { useSearchParams } from 'next/navigation';
 import { getAdSpaces } from '@/lib/supabase/services';
 import dynamic from 'next/dynamic';
@@ -46,7 +47,7 @@ function SearchPageContent() {
   const [adSpaces, setAdSpaces] = useState<AdSpace[]>([]);
   const [selectedAdSpace, setSelectedAdSpace] = useState<AdSpace | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
+  const { isOpen: showFilters, closeFilters, toggleFilters } = useFilterStore();
   const [additionalKm, setAdditionalKm] = useState(0);
   const [appliedFilters, setAppliedFilters] = useState<FilterState | null>(null);
   const [showCartNotification, setShowCartNotification] = useState(false);
@@ -279,13 +280,6 @@ function SearchPageContent() {
 
           {/* Filter Controls */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              Filters
-            </button>
             <button
               onClick={() => setViewMode(viewMode === 'map' ? 'grid' : 'map')}
               className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
@@ -927,10 +921,10 @@ function SearchPageContent() {
       {/* Filter Panel */}
       <FilterPanel
         isOpen={showFilters}
-        onClose={() => setShowFilters(false)}
+        onClose={closeFilters}
         onApply={(filters) => {
           setAppliedFilters(filters);
-          setShowFilters(false);
+          closeFilters();
         }}
         initialFilters={appliedFilters || undefined}
       />

@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowRight, Sparkles, SlidersHorizontal, Palette, Wand2 } from 'lucide-react';
+import { ArrowRight, Sparkles, Palette, Wand2 } from 'lucide-react';
 import AdSpaceCard from '@/components/common/AdSpaceCard';
 import FilterPanel from '@/components/filters/FilterPanel';
 import { AdSpace } from '@/types';
 import { getAdSpaces, getCategories } from '@/lib/supabase/services';
 import { useLocationStore } from '@/store/useLocationStore';
 import { useCampaignDatesStore } from '@/store/useCampaignDatesStore';
+import { useFilterStore } from '@/store/useFilterStore';
 import Link from 'next/link';
 import { getCategoryIcon } from '@/lib/utils/categoryIcons';
 
@@ -32,7 +33,7 @@ export default function HomePage() {
   const [adSpaces, setAdSpaces] = useState<AdSpace[]>([]);
   const [filteredAdSpaces, setFilteredAdSpaces] = useState<AdSpace[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
+  const { isOpen: showFilters, closeFilters } = useFilterStore();
   const [appliedFilters, setAppliedFilters] = useState<FilterState | null>(null);
   const selectedCity = useLocationStore((state) => state.selectedCity);
   const { startDate, endDate } = useCampaignDatesStore();
@@ -584,34 +585,6 @@ export default function HomePage() {
               <p className="text-gray-600">Explore our complete inventory across India</p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowFilters(true)}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:border-[#E91E63] hover:text-[#E91E63] transition-colors"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                Filters
-                {appliedFilters && (() => {
-                  let count = 0;
-                  if (appliedFilters.priceRange.min !== 0 || appliedFilters.priceRange.max !== 100000) count++;
-                  if (appliedFilters.footfallRange.min !== 0 || appliedFilters.footfallRange.max !== 1000000) count++;
-                  if (appliedFilters.sortBy !== 'none') count++;
-                  if (appliedFilters.location) count++;
-                  if (appliedFilters.locationCategories && appliedFilters.locationCategories.length > 0) count++;
-                  if (appliedFilters.displayType) count++;
-                  if (appliedFilters.publishers && appliedFilters.publishers.length > 0) count++;
-                  if (appliedFilters.purchaseCategories && appliedFilters.purchaseCategories.length > 0) count++;
-                  if (appliedFilters.audienceTypes && appliedFilters.audienceTypes.length > 0) count++;
-                  if (appliedFilters.affluenceTiers && appliedFilters.affluenceTiers.length > 0) count++;
-                  if (appliedFilters.ageGroups && appliedFilters.ageGroups.length > 0) count++;
-                  if (appliedFilters.weekBias && appliedFilters.weekBias.length > 0) count++;
-                  if (appliedFilters.spendLevels && appliedFilters.spendLevels.length > 0) count++;
-                  return count > 0 ? (
-                    <span className="bg-[#E91E63] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      {count}
-                    </span>
-                  ) : null;
-                })()}
-              </button>
               <Link 
                 href="/search" 
                 className="text-[#E91E63] font-medium hover:text-[#F50057] inline-flex items-center gap-1"
@@ -678,10 +651,10 @@ export default function HomePage() {
       {/* Filter Panel */}
       <FilterPanel
         isOpen={showFilters}
-        onClose={() => setShowFilters(false)}
+        onClose={closeFilters}
         onApply={(filters) => {
           setAppliedFilters(filters);
-          setShowFilters(false);
+          closeFilters();
         }}
         initialFilters={appliedFilters || undefined}
       />

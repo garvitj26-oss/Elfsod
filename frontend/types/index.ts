@@ -57,6 +57,17 @@ export interface AdSpace {
     base_coverage_km: number; // base coverage in km
     additional_coverage_km?: number; // additional coverage that can be added
   };
+  // Traffic data from Google Maps
+  traffic_data?: {
+    average_daily_visitors?: number | null;
+    peak_hours?: Array<{ hour: number; traffic_level: string }>;
+    weekly_pattern?: Record<string, string>;
+    traffic_level?: 'low' | 'moderate' | 'high' | 'very_high' | 'unknown';
+    last_updated?: string;
+    source?: string;
+    nearby_places_count?: number;
+    note?: string;
+  };
   created_at: string;
   updated_at: string;
   // Joined data

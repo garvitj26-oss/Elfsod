@@ -80,11 +80,120 @@ body {
   display: none;
 }
 
-/* Leaflet Map Styles */
+/* Leaflet Map Styles - Apple Maps inspired */
 .leaflet-container {
   height: 100%;
   width: 100%;
   z-index: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background-color: #f5f5f7;
+}
+
+/* Modern map styling - Apple Maps aesthetic */
+.modern-map {
+  border-radius: 0.5rem;
+  filter: brightness(1.02) contrast(0.98) saturate(0.95);
+}
+
+/* Apple Maps style tile layer */
+.leaflet-tile-container img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Custom marker styling - Apple Maps inspired */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-marker:hover {
+  transform: scale(1.2) translateY(-2px);
+  z-index: 1000 !important;
+}
+
+.apple-marker {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+}
+
+/* Enhanced popup styling - Apple Maps style */
+.leaflet-popup-content-wrapper {
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border: 0.5px solid rgba(0, 0, 0, 0.08) !important;
+  padding: 0 !important;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.5;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.leaflet-popup-close-button {
+  width: 24px !important;
+  height: 24px !important;
+  font-size: 20px !important;
+  line-height: 24px !important;
+  color: #666 !important;
+  padding: 0 !important;
+  margin: 8px 8px 0 0 !important;
+  transition: color 0.2s ease;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #000 !important;
+}
+
+/* Enhanced zoom controls - Apple Maps style */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.leaflet-control-zoom a {
+  background-color: transparent !important;
+  color: #1d1d1f !important;
+  border: none !important;
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 20px !important;
+  font-weight: 400 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  color: #000 !important;
+}
+
+.leaflet-control-zoom a:active {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  transform: scale(0.95) !important;
+}
+
+.leaflet-control-zoom-in {
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Professional card shadows */

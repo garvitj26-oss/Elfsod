@@ -1,13 +1,15 @@
 'use client';
 
-import { Home, Search, ShoppingCart, Sparkles, Palette } from 'lucide-react';
+import { Home, Search, ShoppingCart, Sparkles, Palette, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCartStore } from '@/store/useCartStore';
+import { useFilterStore } from '@/store/useFilterStore';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const cart = useCartStore((state) => state.items);
+  const { isOpen: filtersOpen, openFilters } = useFilterStore();
 
   const navItems = [
     { icon: Home, label: 'Home', href: '/' },
@@ -51,6 +53,19 @@ export default function Sidebar() {
             </Link>
           );
         })}
+        
+        {/* Filters Button - Below Design Studio */}
+        <button
+          onClick={openFilters}
+          className={`relative p-3 rounded-xl transition-all ${
+            filtersOpen
+              ? 'bg-[#E91E63] text-white'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+          title="Filters"
+        >
+          <SlidersHorizontal className="w-6 h-6" />
+        </button>
       </nav>
     </div>
   );

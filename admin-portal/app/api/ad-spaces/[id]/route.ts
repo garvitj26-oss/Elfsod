@@ -104,8 +104,12 @@ export async function PUT(
       images,
       dimensions,
       availabilityStatus,
-      targetAudience
+      targetAudience,
+      route // Route data for movable spaces
     } = body;
+    
+    // Check if display type is movable
+    const isMovableSpace = ['auto_rickshaw', 'bus', 'bike', 'cab', 'truck', 'transit_branding'].includes(displayType);
 
     // Use admin client (service role) to bypass RLS for admin operations
     let supabase;
@@ -123,7 +127,7 @@ export async function PUT(
       );
     }
 
-    // If locationId is being updated, verify it exists
+    // If locationId is being updated, verify it exists (only if provided)
     if (locationId !== undefined && locationId) {
       const { data: location, error: locationError } = await supabase
         .from('locations')
@@ -138,6 +142,18 @@ export async function PUT(
         );
       }
     }
+    
+    // For movable spaces, location and coordinates are optional
+    if (!isMovableSpace && locationId === undefined) {
+      // If not movable and locationId is being removed, that's an error
+      // But we only validate if it's explicitly set to null/empty
+      if (locationId === null || locationId === '') {
+        return NextResponse.json(
+          { error: 'Location ID is required for static spaces' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Build update object with only provided fields
     const updateData: any = {};
@@ -146,13 +162,14 @@ export async function PUT(
     if (description !== undefined) updateData.description = description.trim();
     if (categoryId !== undefined) updateData.category_id = categoryId;
     if (locationId !== undefined) {
-      if (!locationId) {
+      // For movable spaces, location is optional
+      if (!isMovableSpace && !locationId) {
         return NextResponse.json(
-          { error: 'Location ID is required' },
+          { error: 'Location ID is required for static spaces' },
           { status: 400 }
         );
       }
-      updateData.location_id = locationId;
+      updateData.location_id = locationId || null;
     }
     if (publisherId !== undefined) updateData.publisher_id = publisherId || null;
     if (displayType !== undefined) updateData.display_type = displayType;
@@ -160,12 +177,35 @@ export async function PUT(
     if (pricePerMonth !== undefined) updateData.price_per_month = parseFloat(pricePerMonth);
     if (dailyImpressions !== undefined) updateData.daily_impressions = parseInt(dailyImpressions) || 0;
     if (monthlyFootfall !== undefined) updateData.monthly_footfall = parseInt(monthlyFootfall) || 0;
-    if (latitude !== undefined) updateData.latitude = parseFloat(latitude);
-    if (longitude !== undefined) updateData.longitude = parseFloat(longitude);
+    if (latitude !== undefined) {
+      // For movable spaces, coordinates are optional
+      if (!isMovableSpace && (latitude === null || latitude === undefined)) {
+        return NextResponse.json(
+          { error: 'Latitude is required for static spaces' },
+          { status: 400 }
+        );
+      }
+      updateData.latitude = latitude !== null && latitude !== undefined ? parseFloat(latitude) : 0;
+    }
+    if (longitude !== undefined) {
+      // For movable spaces, coordinates are optional
+      if (!isMovableSpace && (longitude === null || longitude === undefined)) {
+        return NextResponse.json(
+          { error: 'Longitude is required for static spaces' },
+          { status: 400 }
+        );
+      }
+      updateData.longitude = longitude !== null && longitude !== undefined ? parseFloat(longitude) : 0;
+    }
     if (images !== undefined) updateData.images = Array.isArray(images) ? images : [];
     if (dimensions !== undefined) updateData.dimensions = typeof dimensions === 'object' ? dimensions : {};
     if (availabilityStatus !== undefined) updateData.availability_status = availabilityStatus;
     if (targetAudience !== undefined) updateData.target_audience = targetAudience || null;
+    
+    // Add route data for movable spaces
+    if (isMovableSpace && route !== undefined) {
+      updateData.route = route;
+    }
 
     // Update the ad space
     const { data: updatedAdSpace, error: updateError } = await supabase
