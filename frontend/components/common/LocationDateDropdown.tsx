@@ -29,6 +29,7 @@ const cities = [
   { id: 'Kolkata', name: 'Kolkata', icon: '🏛️' },
   { id: 'Kochi', name: 'Kochi', icon: '🌴' },
   { id: 'Pune', name: 'Pune', icon: '🏛️' },
+  { id: 'Hyderabad', name: 'Hyderabad', icon: '🏛️' },
 ];
 
 export default function LocationDateDropdown({ isOpen, onClose, mode = 'location' }: LocationDateDropdownProps) {
@@ -80,38 +81,74 @@ export default function LocationDateDropdown({ isOpen, onClose, mode = 'location
   };
 
   const handleDetectLocation = async () => {
-    if (navigator.geolocation) {
-      setIsDetecting(true);
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
+    if (!navigator.geolocation) {
+      console.error('Geolocation is not supported by this browser');
+      alert('Location detection is not supported by your browser. Please select a city manually.');
+      return;
+    }
+
+    setIsDetecting(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
           const { latitude, longitude } = position.coords;
+          console.log('📍 Got coordinates:', { latitude, longitude });
           
           // Try Google Geocoding API first
           let city = await getCityFromCoordinates(latitude, longitude);
+          console.log('📍 Google API result:', city);
           
           // Fallback to distance-based method if Google API fails
           if (!city) {
+            console.log('📍 Falling back to distance-based detection');
             city = await getCityFromCoordinatesFallback(latitude, longitude);
+            console.log('📍 Fallback result:', city);
           }
           
           if (city) {
             setSelectedCity(city);
             setSearchQuery('');
             onClose();
+            console.log('✅ Location detected:', city);
+          } else {
+            console.error('❌ Could not detect city from coordinates');
+            alert('Could not detect your city. Please select a city manually.');
           }
+        } catch (error) {
+          console.error('❌ Error detecting location:', error);
+          alert('Error detecting your location. Please select a city manually.');
+        } finally {
           setIsDetecting(false);
-        },
-        (error) => {
-          console.log('Location access denied or unavailable:', error);
-          setIsDetecting(false);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000,
         }
-      );
-    }
+      },
+      (error) => {
+        console.error('❌ Geolocation error:', error);
+        let errorMessage = 'Could not access your location. ';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Please allow location access in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out.';
+            break;
+          default:
+            errorMessage += 'Please select a city manually.';
+        }
+        
+        alert(errorMessage);
+        setIsDetecting(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000, // Increased timeout
+        maximumAge: 300000, // 5 minutes
+      }
+    );
   };
 
   // Handle search query changes with Google Places Autocomplete

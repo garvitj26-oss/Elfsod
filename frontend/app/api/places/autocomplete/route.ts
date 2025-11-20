@@ -21,23 +21,48 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-      query
-    )}&types=(cities)&key=${GOOGLE_API_KEY}&components=country:in`;
+    // Use the correct Places Autocomplete API format
+    // types parameter: (cities) for cities only - needs to be properly encoded
+    // Also add language and region for better results in India
+    const baseUrl = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+    const params = new URLSearchParams({
+      input: query,
+      types: '(cities)', // This will be properly encoded by URLSearchParams
+      key: GOOGLE_API_KEY,
+      components: 'country:in',
+      language: 'en',
+      region: 'in'
+    });
+    const url = `${baseUrl}?${params.toString()}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error('Places Autocomplete API request failed');
+      const errorText = await response.text();
+      console.error('Places Autocomplete API HTTP error:', response.status, errorText);
+      throw new Error(`Places Autocomplete API request failed: ${response.status}`);
     }
 
     const data = await response.json();
+
+    // Log errors for debugging
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      console.error('Google Places Autocomplete API error:', {
+        status: data.status,
+        error_message: data.error_message,
+        query: query
+      });
+    }
 
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error in Places Autocomplete API route:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch suggestions', status: 'ERROR' },
+      { 
+        error: 'Failed to fetch suggestions', 
+        status: 'ERROR',
+        error_message: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
