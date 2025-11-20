@@ -479,7 +479,7 @@ export default function HomePage() {
                     onClick={() => handleCategoryClick(category.id, category.name)}
                     className={`w-full p-6 rounded-xl border-2 transition-all duration-300 group relative overflow-hidden flex flex-col items-center justify-center transform hover:scale-105 hover:shadow-lg ${
                       selectedCategories.includes(category.id)
-                        ? 'border-[#E91E63] shadow-md scale-105 bg-white' 
+                        ? 'border-[#E91E63] scale-105 bg-white animate-glow-pulse' 
                         : 'bg-white border-gray-200 hover:border-[#E91E63]/50 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white'
                     }`}
                   >

@@ -272,6 +272,26 @@ body {
   animation: gradient-shift 3s ease infinite;
 }
 
+/* Glowing effect for selected category cards */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(233, 30, 99, 0.4), 
+                0 0 40px rgba(233, 30, 99, 0.3), 
+                0 0 60px rgba(233, 30, 99, 0.2),
+                0 0 80px rgba(233, 30, 99, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(233, 30, 99, 0.6), 
+                0 0 50px rgba(233, 30, 99, 0.5), 
+                0 0 70px rgba(233, 30, 99, 0.4),
+                0 0 90px rgba(233, 30, 99, 0.3);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
 /* Safe area for mobile */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
