@@ -35,16 +35,14 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Get user session - this uses the same token from cookies
+  // Get user - this uses the same token from cookies
   // The session is synced from localStorage to cookies by Supabase SSR
   const {
-    data: { user, session },
+    data: { user },
   } = await supabase.auth.getUser();
   
-  // Refresh session if it exists to ensure cookies are up to date
-  if (session) {
-    await supabase.auth.refreshSession();
-  }
+  // Session is automatically managed by Supabase SSR middleware
+  // No need to manually refresh as cookies are kept in sync
 
   const path = request.nextUrl.pathname;
 
