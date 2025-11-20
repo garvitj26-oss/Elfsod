@@ -227,15 +227,25 @@ async function createAdSpaceViaAdminAPI(adSpaceData, categoryId, locationId, tok
       availabilityStatus: 'available'
     };
     
-    // Use admin API endpoint
+    // Use admin API endpoint (admin-portal uses /api/ad-spaces with admin session)
+    // Note: This requires admin authentication via verifyAdminSession
     const adminEndpoint = `${API_BASE_URL}/api/ad-spaces`;
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Add authorization if token is provided
+    // Admin portal uses 'elfsod-admin-token' in localStorage, but API expects session cookie
+    // For script usage, you may need to set up proper admin session first
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(adminEndpoint, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify(payload)
+      headers: headers,
+      body: JSON.stringify(payload),
+      credentials: 'include' // Include cookies for session-based auth
     });
     
     const result = await response.json();
