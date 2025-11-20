@@ -488,9 +488,7 @@ export default function HomePage() {
                     className={`w-full p-6 rounded-xl border-2 transition-all duration-300 group relative overflow-hidden flex flex-col items-center justify-center transform hover:scale-105 hover:shadow-lg ${
                       selectedCategory === category.id 
                         ? 'border-[#E91E63] bg-gradient-to-br from-[#E91E63]/10 to-[#E91E63]/5 shadow-md scale-105' 
-                        : isParent
-                          ? 'bg-gradient-to-br from-blue-50 to-white border-blue-200 hover:border-blue-300'
-                          : 'bg-white border-gray-200 hover:border-[#E91E63]/50 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white'
+                        : 'bg-white border-gray-200 hover:border-[#E91E63]/50 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white'
                     }`}
                   >
                     {/* Background gradient effect on hover */}
@@ -499,13 +497,6 @@ export default function HomePage() {
                         ? 'opacity-100 bg-gradient-to-br from-[#E91E63]/5 to-transparent' 
                         : 'bg-gradient-to-br from-[#E91E63]/5 to-transparent'
                     }`}></div>
-                    
-                    {/* Parent category badge */}
-                    {isParent && (
-                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-semibold rounded-full">
-                        Main
-                      </div>
-                    )}
                     
                     {/* Icon container with better styling */}
                     <div className={`relative z-10 w-16 h-16 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
