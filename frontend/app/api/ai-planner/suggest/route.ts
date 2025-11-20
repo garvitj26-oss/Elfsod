@@ -85,8 +85,39 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Transform ad spaces to match AdSpace interface
+    // Supabase returns category and location as arrays due to joins, but we need single objects
+    const transformedAdSpaces: AdSpace[] = adSpaces.map((space: any) => {
+      // Extract first category from array (Supabase join returns array)
+      const categoryData = Array.isArray(space.category) ? space.category[0] : space.category;
+      // Extract first location from array (Supabase join returns array)
+      const locationData = Array.isArray(space.location) ? space.location[0] : space.location;
+
+      return {
+        id: space.id,
+        title: space.title,
+        description: space.description,
+        category: categoryData ? {
+          name: categoryData.name || '',
+          description: categoryData.description
+        } : null,
+        location: locationData ? {
+          city: locationData.city || '',
+          state: locationData.state || '',
+          address: locationData.address
+        } : null,
+        display_type: space.display_type,
+        price_per_day: space.price_per_day,
+        price_per_month: space.price_per_month,
+        daily_impressions: space.daily_impressions || 0,
+        availability_status: space.availability_status,
+        images: space.images,
+        route: space.route
+      };
+    });
+
     // Prepare ad spaces data for AI
-    const adSpacesForAI = adSpaces.map((space: any) => ({
+    const adSpacesForAI = transformedAdSpaces.map((space) => ({
       id: space.id,
       title: space.title,
       description: space.description,
@@ -107,7 +138,7 @@ export async function POST(request: NextRequest) {
       console.log('⚠️ GROQ_API_KEY not configured, using rule-based matching');
       return NextResponse.json({
         success: true,
-        suggestions: getRuleBasedSuggestions(campaignData, adSpaces as AdSpace[]),
+        suggestions: getRuleBasedSuggestions(campaignData, transformedAdSpaces),
         method: 'rule-based'
       });
     }
@@ -125,7 +156,7 @@ export async function POST(request: NextRequest) {
       // Fallback to rule-based matching
       return NextResponse.json({
         success: true,
-        suggestions: getRuleBasedSuggestions(campaignData, adSpaces as AdSpace[]),
+        suggestions: getRuleBasedSuggestions(campaignData, transformedAdSpaces),
         method: 'rule-based',
         aiError: aiError instanceof Error ? aiError.message : String(aiError)
       });
