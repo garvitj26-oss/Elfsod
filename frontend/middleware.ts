@@ -23,18 +23,28 @@ export async function middleware(request: NextRequest) {
           response = NextResponse.next({
             request,
           });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, {
+              ...options,
+              sameSite: 'lax',
+              path: '/',
+            });
+          });
         },
       },
     }
   );
 
-  // Get user session
+  // Get user session - this uses the same token from cookies
+  // The session is synced from localStorage to cookies by Supabase SSR
   const {
-    data: { user },
+    data: { user, session },
   } = await supabase.auth.getUser();
+  
+  // Refresh session if it exists to ensure cookies are up to date
+  if (session) {
+    await supabase.auth.refreshSession();
+  }
 
   const path = request.nextUrl.pathname;
 
@@ -46,16 +56,16 @@ export async function middleware(request: NextRequest) {
     '/',              // Home - browsing allowed
     '/search',        // Search - browsing allowed
     '/ad-space',      // Ad space details - browsing allowed
+    '/cart',          // Cart - browsing allowed (guests can view cart)
+    '/ai-planner',    // AI Planner - browsing allowed (no sign-in required)
   ];
 
   // Paths that require authentication
   const protectedPaths = [
-    '/cart',          // Cart requires auth
     '/checkout',      // Checkout requires auth
     '/profile',       // Profile requires auth
     '/bookings',      // Bookings requires auth
     '/campaigns',     // Campaigns requires auth
-    '/ai-planner',    // AI Planner requires auth
     '/design',        // Design requires auth
     '/admin',         // Admin requires auth
   ];
@@ -78,8 +88,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Additional check for admin routes - requires admin role
-  if (user && path.startsWith('/admin')) {
+  // Admin portal routes - authentication handled by AdminPortalLayout component
+  // No middleware redirects - let the component handle auth checks
+
+  // Legacy admin routes - requires admin role from users table
+  if (user && path.startsWith('/admin') && !path.startsWith('/admin-portal')) {
     const { data: userData } = await supabase
       .from('users')
       .select('user_type')

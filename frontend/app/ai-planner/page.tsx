@@ -5,6 +5,8 @@ import { ArrowLeft, ArrowRight, Megaphone, Users, ShoppingCart, ArrowRight as Tr
 import { useRouter } from 'next/navigation';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { formatINR, formatINRFull } from '@/lib/utils/currency';
+import VoiceTextarea from '@/components/common/VoiceTextarea';
 
 type Goal = 'brand_awareness' | 'engagement' | 'conversions' | 'traffic' | null;
 
@@ -45,7 +47,9 @@ export default function AIPlannerPage() {
   const [selectedGoal, setSelectedGoal] = useState<Goal>(null);
   const [productDescription, setProductDescription] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
-  const [budget, setBudget] = useState(5000);
+  const [ageRange, setAgeRange] = useState('');
+  const [incomeLevel, setIncomeLevel] = useState('');
+  const [budget, setBudget] = useState(50000); // Default to ₹50,000
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
@@ -55,8 +59,39 @@ export default function AIPlannerPage() {
     if (currentStep < 6) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Generate plan and show recommendations
-      router.push('/ai-planner/recommendations');
+      // Save campaign data to localStorage and navigate to recommendations
+      const campaignData = {
+        goal: selectedGoal,
+        productDescription,
+        targetAudience,
+        ageRange,
+        incomeLevel,
+        budget,
+        startDate: startDate?.toISOString() || '',
+        endDate: endDate?.toISOString() || ''
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('ai-campaign-goal', campaignData.goal || '');
+      localStorage.setItem('ai-campaign-product', campaignData.productDescription);
+      localStorage.setItem('ai-campaign-audience', campaignData.targetAudience);
+      localStorage.setItem('ai-campaign-ageRange', campaignData.ageRange);
+      localStorage.setItem('ai-campaign-incomeLevel', campaignData.incomeLevel);
+      localStorage.setItem('ai-campaign-budget', campaignData.budget.toString());
+      localStorage.setItem('ai-campaign-startDate', campaignData.startDate);
+      localStorage.setItem('ai-campaign-endDate', campaignData.endDate);
+      
+      // Navigate with URL params
+      const params = new URLSearchParams({
+        goal: campaignData.goal || '',
+        product: campaignData.productDescription,
+        audience: campaignData.targetAudience,
+        budget: campaignData.budget.toString(),
+        startDate: campaignData.startDate,
+        ...(campaignData.endDate && { endDate: campaignData.endDate })
+      });
+      
+      router.push(`/ai-planner/recommendations?${params.toString()}`);
     }
   };
 
@@ -82,13 +117,15 @@ export default function AIPlannerPage() {
       <div className="max-w-4xl mx-auto h-full flex flex-col">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-8 py-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#E91E63] to-[#F50057] rounded-xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">AI Campaign Planner</h1>
-              <p className="text-sm text-gray-600">Let AI find the perfect ad spaces for your campaign</p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-[#E91E63] to-[#F50057] rounded-xl flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">AI Campaign Planner</h1>
+                <p className="text-sm text-gray-600">Let AI find the perfect ad spaces for your campaign</p>
+              </div>
             </div>
           </div>
           
@@ -124,7 +161,9 @@ export default function AIPlannerPage() {
                   return (
                     <button
                       key={goal.id}
-                      onClick={() => setSelectedGoal(goal.id)}
+                      onClick={() => {
+                        setSelectedGoal(goal.id);
+                      }}
                       className={`p-6 rounded-2xl border-2 transition-all ${
                         isSelected
                           ? 'border-[#E91E63] bg-[#E91E63]/5 scale-[1.02]'
@@ -159,14 +198,16 @@ export default function AIPlannerPage() {
                 <p className="text-gray-600">Describe what you're promoting in detail</p>
               </div>
               <div className="bg-white rounded-2xl border border-gray-200 p-6">
-                <textarea
+                <VoiceTextarea
                   value={productDescription}
-                  onChange={(e) => setProductDescription(e.target.value)}
-                  placeholder="E.g., We're launching a new eco-friendly water bottle that keeps drinks cold for 24 hours. It's made from recycled materials and comes in 5 vibrant colors..."
-                  className="w-full h-64 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E91E63] resize-none text-gray-900"
+                  onChange={setProductDescription}
+                  placeholder="E.g., We're launching a new eco-friendly water bottle that keeps drinks cold for 24 hours. It's made from recycled materials and comes in 5 vibrant colors... Or click the microphone icon to speak your description."
+                  className="h-64"
+                  rows={10}
+                  minLength={20}
                 />
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-sm text-gray-500">Minimum 20 characters</span>
+                  <span className="text-sm text-gray-500">Minimum 20 characters • Click mic icon for voice input</span>
                   <span className={`text-sm font-medium ${productDescription.length >= 20 ? 'text-[#4CAF50]' : 'text-gray-400'}`}>
                     {productDescription.length} characters
                   </span>
@@ -190,17 +231,26 @@ export default function AIPlannerPage() {
                     <Target className="w-4 h-4 inline mr-2 text-[#E91E63]" />
                     Audience Description
                   </label>
-                  <textarea
+                  <VoiceTextarea
                     value={targetAudience}
-                    onChange={(e) => setTargetAudience(e.target.value)}
-                    placeholder="E.g., Young professionals aged 25-40, health-conscious, interested in sustainability..."
-                    className="w-full h-32 p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E91E63] resize-none"
+                    onChange={setTargetAudience}
+                    placeholder="E.g., Young professionals aged 25-40, health-conscious, interested in sustainability... Or click the microphone icon to speak your description."
+                    className="h-32"
+                    rows={5}
+                    minLength={10}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Age Range</label>
-                    <select className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]">
+                    <select 
+                      value={ageRange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
+                      onChange={(e) => {
+                        setAgeRange(e.target.value);
+                      }}
+                    >
+                      <option value="">Select age range</option>
                       <option>18-24</option>
                       <option>25-34</option>
                       <option>35-44</option>
@@ -209,7 +259,14 @@ export default function AIPlannerPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Income Level</label>
-                    <select className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]">
+                    <select 
+                      value={incomeLevel}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
+                      onChange={(e) => {
+                        setIncomeLevel(e.target.value);
+                      }}
+                    >
+                      <option value="">Select income level</option>
                       <option>Lower</option>
                       <option>Middle</option>
                       <option>Upper Middle</option>
@@ -232,20 +289,20 @@ export default function AIPlannerPage() {
                 <div className="text-center mb-6">
                   <DollarSign className="w-12 h-12 text-[#E91E63] mx-auto mb-4" />
                   <div className="text-6xl font-bold text-gray-900 mb-4">
-                    ${budget.toLocaleString()}
+                    {formatINR(budget)}
                   </div>
                   <input
                     type="range"
-                    min="1000"
-                    max="100000"
-                    step="1000"
+                    min="10000"
+                    max="1000000"
+                    step="10000"
                     value={budget}
                     onChange={(e) => setBudget(Number(e.target.value))}
                     className="w-full accent-[#E91E63]"
                   />
                 </div>
                 <div className="grid grid-cols-4 gap-3">
-                  {[1000, 2500, 5000, 10000].map((amount) => (
+                  {[50000, 100000, 250000, 500000].map((amount) => (
                     <button
                       key={amount}
                       onClick={() => setBudget(amount)}
@@ -255,7 +312,7 @@ export default function AIPlannerPage() {
                           : 'border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm'
                       }`}
                     >
-                      ${amount.toLocaleString()}
+                      {formatINR(amount)}
                     </button>
                   ))}
                 </div>
@@ -355,7 +412,7 @@ export default function AIPlannerPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 mb-1">Budget</h3>
-                    <p className="text-gray-600">${budget.toLocaleString()}</p>
+                    <p className="text-gray-600">{formatINR(budget)}</p>
                   </div>
                   <button onClick={() => setCurrentStep(4)} className="text-[#E91E63] text-sm font-medium hover:underline">
                     Edit
