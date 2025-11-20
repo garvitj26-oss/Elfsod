@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ArrowRight, Sparkles, Palette, Wand2 } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ArrowRight, Sparkles, Palette, Wand2, TrendingUp, Star } from 'lucide-react';
 import AdSpaceCard from '@/components/common/AdSpaceCard';
 import FilterPanel from '@/components/filters/FilterPanel';
 import { AdSpace } from '@/types';
