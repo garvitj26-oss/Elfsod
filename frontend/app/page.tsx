@@ -577,6 +577,101 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Recommended High Traffic Ad Spaces */}
+        {(() => {
+          // Filter ad spaces with high/very_high traffic
+          const highTrafficSpaces = adSpaces.filter(space => {
+            const trafficLevel = space.traffic_data?.traffic_level;
+            const nearbyPlaces = space.traffic_data?.nearby_places_count;
+            
+            // Check if traffic level is high or very_high
+            if (trafficLevel === 'high' || trafficLevel === 'very_high') {
+              return true;
+            }
+            
+            // Also include spaces with high nearby places count (estimated high traffic)
+            if (nearbyPlaces && nearbyPlaces > 20) {
+              return true;
+            }
+            
+            // Include spaces with high daily impressions as proxy for traffic
+            if (space.daily_impressions && space.daily_impressions > 10000) {
+              return true;
+            }
+            
+            return false;
+          })
+          .filter(space => space.availability_status === 'available')
+          .sort((a, b) => {
+            // Sort by traffic level priority, then by daily impressions
+            const getTrafficScore = (space: AdSpace) => {
+              const level = space.traffic_data?.traffic_level;
+              if (level === 'very_high') return 100;
+              if (level === 'high') return 80;
+              if (level === 'moderate') return 50;
+              if (level === 'low') return 20;
+              
+              // Fallback to impressions or nearby places
+              if (space.daily_impressions && space.daily_impressions > 15000) return 70;
+              if (space.daily_impressions && space.daily_impressions > 10000) return 60;
+              if (space.traffic_data?.nearby_places_count && space.traffic_data.nearby_places_count > 20) return 65;
+              
+              return 30;
+            };
+            
+            const scoreA = getTrafficScore(a);
+            const scoreB = getTrafficScore(b);
+            
+            if (scoreA !== scoreB) {
+              return scoreB - scoreA; // Higher score first
+            }
+            
+            // If same score, sort by daily impressions
+            return (b.daily_impressions || 0) - (a.daily_impressions || 0);
+          })
+          .slice(0, 6); // Show top 6 high traffic spaces
+          
+          if (highTrafficSpaces.length === 0 || loading) return null;
+          
+          return (
+            <section className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Recommended High Traffic Spaces</h2>
+                    <p className="text-gray-600">Premium locations with maximum visibility and footfall</p>
+                  </div>
+                </div>
+                <Link 
+                  href="/search" 
+                  className="text-[#E91E63] font-medium hover:text-[#F50057] inline-flex items-center gap-1"
+                >
+                  View all
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-6">
+                {highTrafficSpaces.map((space) => (
+                  <div key={space.id} className="relative">
+                    {/* High Traffic Badge */}
+                    <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg shadow-lg">
+                      <Star className="w-3.5 h-3.5 fill-white" />
+                      <span className="text-xs font-bold">
+                        {space.traffic_data?.traffic_level === 'very_high' ? 'Very High' : 'High'} Traffic
+                      </span>
+                    </div>
+                    <AdSpaceCard adSpace={space} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
         {/* All Ad Spaces - Single List */}
         <section>
           <div className="flex items-center justify-between mb-6">
