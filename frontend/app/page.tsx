@@ -9,6 +9,7 @@ import { getAdSpaces, getCategories } from '@/lib/supabase/services';
 import { useLocationStore } from '@/store/useLocationStore';
 import { useCampaignDatesStore } from '@/store/useCampaignDatesStore';
 import Link from 'next/link';
+import { getCategoryIcon } from '@/lib/utils/categoryIcons';
 
 interface FilterState {
   priceRange: { min: number; max: number };
@@ -265,17 +266,22 @@ export default function HomePage() {
           return '📍'; // Default emoji
         };
 
-        setCategories(cats.map((cat: any) => ({
-          id: cat.id,
-          name: cat.name,
-          count: cat.ad_space_count || 0, // Use count from API (already filtered by location)
-          parent_category_id: cat.parent_category_id || null, // Store parent_category_id to detect parent categories
-          icon: null, // Can be added later
-          emoji: getCategoryEmoji(cat.name), // Emoji fallback
-          icon_url: cat.icon_url, // Store icon_url from database
-          color: 'from-gray-600 to-gray-700',
-          bgColor: 'bg-gray-50'
-        })));
+        setCategories(cats.map((cat: any) => {
+          // Get local icon first, fallback to database icon_url
+          const localIcon = getCategoryIcon(cat.name, cat.icon_url);
+          
+          return {
+            id: cat.id,
+            name: cat.name,
+            count: cat.ad_space_count || 0, // Use count from API (already filtered by location)
+            parent_category_id: cat.parent_category_id || null, // Store parent_category_id to detect parent categories
+            icon: null, // Can be added later
+            emoji: getCategoryEmoji(cat.name), // Emoji fallback
+            icon_url: localIcon || cat.icon_url, // Use local icon first, then database icon_url
+            color: 'from-gray-600 to-gray-700',
+            bgColor: 'bg-gray-50'
+          };
+        }));
       } catch (error) {
         console.error('Error fetching categories:', error);
       } finally {
@@ -285,6 +291,18 @@ export default function HomePage() {
     fetchCategories();
   }, [selectedCity]); // Refetch categories when city changes to update counts
 
+  // Organize categories: separate parents and children for visual distinction
+  const parentCategories = categories.filter(cat => !cat.parent_category_id);
+  const childCategories = categories.filter(cat => cat.parent_category_id);
+  
+  // Group children by parent (for showing child count on parent cards)
+  const childrenByParent = childCategories.reduce((acc, child) => {
+    const parentId = child.parent_category_id;
+    if (!acc[parentId]) acc[parentId] = [];
+    acc[parentId].push(child);
+    return acc;
+  }, {} as Record<string, any[]>);
+  
   // Use categories from database with updated counts
   const displayCategories = categories.length > 0 ? categories : [];
 
@@ -363,30 +381,48 @@ export default function HomePage() {
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-[#E91E63] via-[#F50057] to-[#E91E63] text-white">
-        <div className="container-app px-6 py-16">
+      <div className="relative text-white overflow-hidden min-h-[600px] flex items-center">
+        {/* GIF Background */}
+        <div className="absolute inset-0 w-full h-full z-0">
+          <img 
+            src="/assets/homebanner/homebanner.gif" 
+            alt="Advertising spaces background"
+            className="w-full h-full object-cover"
+            style={{ 
+              objectFit: 'cover', 
+              minHeight: '100%',
+              width: '100%',
+              height: '100%',
+              filter: 'blur(4px)'
+            }}
+          />
+        </div>
+        {/* Color overlay matching site theme */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#E91E63]/20 via-[#F50057]/15 to-[#E91E63]/20 z-[1]"></div>
+        {/* Content */}
+        <div className="relative z-10 container-app px-6 pt-24 pb-16 w-full">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4" />
               <span className="text-sm font-medium">AI-Powered Campaign Planning</span>
             </div>
-            <h1 className="text-5xl font-bold mb-4 leading-tight">
+            <h1 className="text-5xl font-bold mb-4 leading-tight drop-shadow-lg">
               Find Perfect Ad Spaces for Your Campaign
           </h1>
-            <p className="text-xl text-white/90 mb-8">
+            <p className="text-xl text-white/90 mb-8 drop-shadow-md">
               Discover, plan, and book advertising inventory across India with our intelligent platform
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-4 -ml-2">
               <Link 
                 href="/search"
-                className="bg-white text-[#E91E63] px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors inline-flex items-center gap-2"
+                className="bg-white text-[#E91E63] px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors inline-flex items-center gap-2 shadow-lg"
               >
                 Explore Ad Spaces
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link 
                 href="/ai-planner"
-                className="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors"
+                className="bg-white/10 backdrop-blur-sm border border-white/30 text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors shadow-lg"
               >
                 Try AI Planner
               </Link>
@@ -423,72 +459,119 @@ export default function HomePage() {
       <div className="container-app px-6 py-8">
         {/* Categories Grid - Always Show */}
         <section className="mb-12">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Browse by Category</h2>
-              <p className="text-gray-600">Choose the type of advertising space you need</p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Browse by Category</h2>
+              <p className="text-gray-600 text-lg">Discover advertising spaces tailored to your campaign needs</p>
             </div>
           </div>
           
           {categoriesLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="bg-gray-50 p-6 rounded-2xl border-2 border-transparent animate-pulse">
-                  <div className="w-16 h-16 bg-gray-200 rounded-xl mb-4 mx-auto"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3 mx-auto"></div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+                <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 animate-pulse flex flex-col items-center justify-center shadow-sm">
+                  <div className="w-16 h-16 bg-gray-200 rounded-xl mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                 </div>
               ))}
             </div>
           ) : displayCategories.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-              {displayCategories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategoryClick(category.id, category.name)}
-                  className={`${category.bgColor} p-6 rounded-2xl border-2 transition-all group relative overflow-hidden ${
-                    selectedCategory === category.id 
-                      ? 'border-[#E91E63] shadow-lg scale-[1.02]' 
-                      : 'border-transparent hover:border-gray-200 hover:shadow-md'
-                  }`}
-                >
-                  {selectedCategory === category.id && (
-                    <div className="absolute inset-0 bg-[#E91E63]/5" />
-                  )}
-                  <div className="relative">
-                    <div className={`w-16 h-16 bg-gradient-to-br ${category.color} rounded-xl flex items-center justify-center text-white mb-4 mx-auto group-hover:scale-110 transition-transform shadow-md p-3`}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {displayCategories.map((category) => {
+                const isParent = !category.parent_category_id;
+                const hasChildren = childrenByParent[category.id]?.length > 0;
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => handleCategoryClick(category.id, category.name)}
+                    className={`w-full p-6 rounded-xl border-2 transition-all duration-300 group relative overflow-hidden flex flex-col items-center justify-center transform hover:scale-105 hover:shadow-lg ${
+                      selectedCategory === category.id 
+                        ? 'border-[#E91E63] bg-gradient-to-br from-[#E91E63]/10 to-[#E91E63]/5 shadow-md scale-105' 
+                        : isParent
+                          ? 'bg-gradient-to-br from-blue-50 to-white border-blue-200 hover:border-blue-300'
+                          : 'bg-white border-gray-200 hover:border-[#E91E63]/50 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white'
+                    }`}
+                  >
+                    {/* Background gradient effect on hover */}
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                      selectedCategory === category.id 
+                        ? 'opacity-100 bg-gradient-to-br from-[#E91E63]/5 to-transparent' 
+                        : 'bg-gradient-to-br from-[#E91E63]/5 to-transparent'
+                    }`}></div>
+                    
+                    {/* Parent category badge */}
+                    {isParent && (
+                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-semibold rounded-full">
+                        Main
+                      </div>
+                    )}
+                    
+                    {/* Icon container with better styling */}
+                    <div className={`relative z-10 w-16 h-16 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
+                      selectedCategory === category.id 
+                        ? 'bg-gradient-to-br from-[#E91E63] to-[#F50057] shadow-lg shadow-[#E91E63]/30' 
+                        : 'bg-gradient-to-br from-gray-100 to-gray-50 group-hover:from-[#E91E63]/10 group-hover:to-[#E91E63]/5'
+                    }`}>
                       {category.icon_url ? (
                         <img 
                           src={category.icon_url} 
                           alt={category.name}
-                          className="w-8 h-8 object-contain"
+                          className={`w-10 h-10 object-contain transition-transform duration-300 ${
+                            selectedCategory === category.id ? 'brightness-0 invert' : 'group-hover:scale-110'
+                          }`}
                           onError={(e) => {
-                            // Fallback to emoji if image fails to load
                             e.currentTarget.style.display = 'none';
                             const emojiSpan = e.currentTarget.parentElement?.querySelector('.category-emoji');
                             if (emojiSpan) emojiSpan.classList.remove('hidden');
                           }}
                         />
                       ) : null}
-                      <span className={`text-3xl category-emoji ${category.icon_url ? 'hidden' : ''}`}>
+                      <span className={`text-3xl category-emoji ${category.icon_url ? 'hidden' : ''} ${
+                        selectedCategory === category.id ? 'filter brightness-0 invert' : ''
+                      }`}>
                         {category.emoji || '📍'}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-1 text-sm text-center">{category.name}</h3>
-                    <p className="text-xs text-gray-600 text-center">{category.count} spaces</p>
+                    
+                    {/* Category name */}
+                    <h3 className={`relative z-10 font-bold text-center text-sm leading-tight mb-2 px-2 min-h-[3rem] flex items-center justify-center ${
+                      selectedCategory === category.id 
+                        ? 'text-[#E91E63]' 
+                        : 'text-gray-900 group-hover:text-[#E91E63]'
+                    }`}>
+                      {category.name}
+                    </h3>
+                    
+                    {/* Count badge */}
+                    <div className={`relative z-10 inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      selectedCategory === category.id 
+                        ? 'bg-[#E91E63] text-white' 
+                        : 'bg-gray-100 text-gray-700 group-hover:bg-[#E91E63]/10 group-hover:text-[#E91E63]'
+                    }`}>
+                      {category.count} {category.count === 1 ? 'space' : 'spaces'}
+                    </div>
+                    
+                    {/* Selection indicator */}
                     {selectedCategory === category.id && (
-                      <div className="mt-2 text-xs text-[#E91E63] font-medium text-center">
-                        ✓ Selected
+                      <div className="absolute top-2 right-2 w-3 h-3 bg-[#E91E63] rounded-full border-2 border-white shadow-lg"></div>
+                    )}
+                    
+                    {/* Children indicator */}
+                    {hasChildren && (
+                      <div className="absolute bottom-2 right-2 w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center">
+                        <span className="text-[10px] text-gray-600 font-bold">{childrenByParent[category.id].length}</span>
                       </div>
                     )}
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300">
-              <p className="text-gray-600 mb-2">No categories available</p>
-              <p className="text-sm text-gray-500">Categories will appear here once they are added to the database.</p>
+            <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
+              <div className="text-6xl mb-4">📭</div>
+              <p className="text-gray-700 text-lg font-semibold mb-2">No categories available</p>
+              <p className="text-sm text-gray-500 max-w-md mx-auto">Categories will appear here once they are added to the database.</p>
             </div>
           )}
         </section>

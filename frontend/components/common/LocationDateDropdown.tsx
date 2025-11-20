@@ -11,6 +11,7 @@ import {
   getCitySuggestions,
   checkApiKey,
 } from '@/lib/googlePlaces';
+import { getCityIconPath, cityIconEmojiMap } from '@/lib/utils/cityIcons';
 
 interface LocationDateDropdownProps {
   isOpen: boolean;
@@ -332,7 +333,25 @@ export default function LocationDateDropdown({ isOpen, onClose, mode = 'location
                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
-                        <div className="text-3xl">{city.icon}</div>
+                        {getCityIconPath(city.id) ? (
+                          <img 
+                            src={getCityIconPath(city.id) || ''} 
+                            alt={city.name}
+                            className="w-12 h-12 object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const emojiSpan = target.nextElementSibling as HTMLElement;
+                              if (emojiSpan) emojiSpan.style.display = 'block';
+                            }}
+                          />
+                        ) : null}
+                        <span 
+                          className={`text-3xl ${getCityIconPath(city.id) ? 'hidden' : ''}`}
+                          style={{ display: getCityIconPath(city.id) ? 'none' : 'block' }}
+                        >
+                          {cityIconEmojiMap[city.id] || city.icon}
+                        </span>
                         <span className={`text-xs font-medium ${
                           selectedCity === city.id ? 'text-[#E91E63]' : 'text-gray-700'
                         }`}>
