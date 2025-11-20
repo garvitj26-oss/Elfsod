@@ -1,13 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
     const body = await request.json();
+    const { id } = await params;
 
     // Check if user is authenticated and is admin
     const { data: { user } } = await supabase.auth.getUser();
@@ -40,7 +41,7 @@ export async function PATCH(
         user_type: body.user_type,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
