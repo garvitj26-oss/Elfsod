@@ -479,16 +479,19 @@ export default function HomePage() {
                     onClick={() => handleCategoryClick(category.id, category.name)}
                     className={`w-full p-6 rounded-xl border-2 transition-all duration-300 group relative overflow-hidden flex flex-col items-center justify-center transform hover:scale-105 hover:shadow-lg ${
                       selectedCategories.includes(category.id)
-                        ? 'border-[#E91E63] bg-gradient-to-br from-[#E91E63]/10 to-[#E91E63]/5 shadow-md scale-105' 
+                        ? 'border-[#E91E63] shadow-md scale-105 bg-white' 
                         : 'bg-white border-gray-200 hover:border-[#E91E63]/50 hover:bg-gradient-to-br hover:from-gray-50 hover:to-white'
                     }`}
                   >
-                    {/* Background gradient effect on hover */}
-                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                      selectedCategories.includes(category.id)
-                        ? 'opacity-100 bg-gradient-to-br from-[#E91E63]/5 to-transparent' 
-                        : 'bg-gradient-to-br from-[#E91E63]/5 to-transparent'
-                    }`}></div>
+                    {/* Animated gradient background for selected cards */}
+                    {selectedCategories.includes(category.id) && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#E91E63] via-[#F50057] to-[#FF6B9D] opacity-20 animate-gradient-shift rounded-xl"></div>
+                    )}
+                    
+                    {/* Background gradient effect on hover (only for non-selected) */}
+                    {!selectedCategories.includes(category.id) && (
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-[#E91E63]/5 to-transparent rounded-xl"></div>
+                    )}
                     
                     {/* Icon container with better styling */}
                     <div className={`relative z-10 w-16 h-16 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
@@ -534,11 +537,6 @@ export default function HomePage() {
                     }`}>
                       {category.count} {category.count === 1 ? 'space' : 'spaces'}
                     </div>
-                    
-                    {/* Selection indicator */}
-                    {selectedCategories.includes(category.id) && (
-                      <div className="absolute top-2 right-2 w-3 h-3 bg-[#E91E63] rounded-full border-2 border-white shadow-lg"></div>
-                    )}
                     
                     {/* Children indicator */}
                     {hasChildren && (
