@@ -13,6 +13,7 @@ interface SupabaseResponse<T> {
     details?: string;
     hint?: string;
     code?: string;
+    syscall?: string;
   } | null;
 }
 
