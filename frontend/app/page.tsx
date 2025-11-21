@@ -667,16 +667,26 @@ export default function HomePage() {
                     <Link 
                       key={space.id} 
                       href={`/ad-space/${space.id}`}
-                      className="block relative group"
+                      className="block relative group cursor-pointer"
                     >
                       {/* Image Container - Fills entire card */}
-                      <div className="relative w-full h-80 rounded-xl overflow-hidden bg-gray-200">
+                      <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-200 shadow-md hover:shadow-xl transition-shadow duration-300">
                         {space.images && space.images.length > 0 ? (
-                          <img
-                            src={space.images[0]}
-                            alt={space.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                          <>
+                            <img
+                              src={space.images[0]}
+                              alt={space.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                                if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                              }}
+                            />
+                            <div className="image-fallback hidden w-full h-full items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                              <span className="text-gray-400 text-sm">No Image</span>
+                            </div>
+                          </>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
                             <span className="text-gray-400 text-sm">No Image</span>
@@ -684,9 +694,9 @@ export default function HomePage() {
                         )}
                         
                         {/* Overlay with Eye Icon and View Count */}
-                        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-lg">
-                          <Eye className="w-4 h-4" />
-                          <span className="text-sm font-semibold">
+                        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2 bg-black/70 backdrop-blur-md text-white px-3 py-2 rounded-lg shadow-xl">
+                          <Eye className="w-4 h-4 flex-shrink-0" />
+                          <span className="text-sm font-semibold whitespace-nowrap">
                             {formatMetric(space.daily_impressions || 0)}
                           </span>
                         </div>
