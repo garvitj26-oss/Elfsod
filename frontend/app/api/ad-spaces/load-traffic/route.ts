@@ -216,6 +216,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Only save if we got valid data
+        // trafficData is already defined above and populated from Google Places API
         if (trafficData && trafficData.traffic_level && trafficData.traffic_level !== 'unknown') {
           // Save to database
           const { error: updateError } = await supabase
