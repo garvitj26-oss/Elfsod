@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Sparkles, Palette, Wand2, TrendingUp, Star } from 'lucide-react';
+import { ArrowRight, Sparkles, Palette, Wand2, TrendingUp, Star, Eye } from 'lucide-react';
 import AdSpaceCard from '@/components/common/AdSpaceCard';
 import FilterPanel from '@/components/filters/FilterPanel';
 import { AdSpace } from '@/types';
@@ -655,18 +655,45 @@ export default function HomePage() {
               </div>
               
               <div className="grid grid-cols-3 gap-6">
-                {highTrafficSpaces.map((space) => (
-                  <div key={space.id} className="relative">
-                    {/* High Traffic Badge */}
-                    <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg shadow-lg">
-                      <Star className="w-3.5 h-3.5 fill-white" />
-                      <span className="text-xs font-bold">
-                        {space.traffic_data?.traffic_level === 'very_high' ? 'Very High' : 'High'} Traffic
-                      </span>
-                    </div>
-                    <AdSpaceCard adSpace={space} />
-                  </div>
-                ))}
+                {highTrafficSpaces.map((space) => {
+                  const formatMetric = (value: number) => {
+                    if (value >= 1000) {
+                      return `${(value / 1000).toFixed(0)}K+`;
+                    }
+                    return value.toString();
+                  };
+
+                  return (
+                    <Link 
+                      key={space.id} 
+                      href={`/ad-space/${space.id}`}
+                      className="block relative group"
+                    >
+                      {/* Image Container - Fills entire card */}
+                      <div className="relative w-full h-80 rounded-xl overflow-hidden bg-gray-200">
+                        {space.images && space.images.length > 0 ? (
+                          <img
+                            src={space.images[0]}
+                            alt={space.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                            <span className="text-gray-400 text-sm">No Image</span>
+                          </div>
+                        )}
+                        
+                        {/* Overlay with Eye Icon and View Count */}
+                        <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm text-white px-3 py-2 rounded-lg shadow-lg">
+                          <Eye className="w-4 h-4" />
+                          <span className="text-sm font-semibold">
+                            {formatMetric(space.daily_impressions || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </section>
           );
