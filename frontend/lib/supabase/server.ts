@@ -11,8 +11,21 @@ export async function createClient() {
     const missing = [];
     if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
     if (!supabaseKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-    throw new Error(`Supabase environment variables not configured. Missing: ${missing.join(', ')}. Please check your Netlify environment variables.`);
+    
+    // Log available env vars for debugging
+    const availableEnvVars = Object.keys(process.env).filter(k => k.includes('SUPABASE') || k.includes('NEXT_PUBLIC'));
+    console.error('❌ Missing Supabase environment variables:', missing);
+    console.error('Available env vars:', availableEnvVars);
+    
+    throw new Error(`Supabase environment variables not configured. Missing: ${missing.join(', ')}. Please check your Netlify environment variables are set for production context.`);
   }
+  
+  // Log that env vars are present (without exposing values)
+  console.log('✅ Supabase env vars configured:', {
+    urlSet: !!supabaseUrl,
+    keySet: !!supabaseKey,
+    urlLength: supabaseUrl?.length || 0
+  });
 
   try {
     let cookieStore;

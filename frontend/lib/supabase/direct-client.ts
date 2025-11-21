@@ -29,10 +29,18 @@ export async function directSupabaseQuery<T>(
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
+    const missing = [];
+    if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+    if (!supabaseKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    
+    console.error('❌ Missing environment variables:', missing);
+    console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
+    
     return {
       data: null,
       error: {
-        message: 'Supabase environment variables not configured'
+        message: `Supabase environment variables not configured. Missing: ${missing.join(', ')}`,
+        details: 'Please check Netlify environment variables are set for production context'
       }
     };
   }
@@ -115,11 +123,21 @@ export async function directSupabaseQuery<T>(
       });
 
       req.on('error', (error) => {
+        console.error('❌ HTTPS request error:', error);
+        console.error('Request details:', {
+          hostname: url.hostname,
+          path: url.pathname + url.search,
+          urlSet: !!supabaseUrl,
+          keySet: !!supabaseKey
+        });
+        
         resolve({
           data: null,
           error: {
             message: 'Network error',
-            details: error.message
+            details: error.message,
+            code: (error as any).code,
+            syscall: (error as any).syscall
           }
         });
       });
