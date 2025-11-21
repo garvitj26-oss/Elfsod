@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { directSupabaseQuery } from '@/lib/supabase/direct-client';
 
 /**
  * Next.js API route to fetch categories
@@ -36,14 +37,29 @@ export async function GET(request: NextRequest) {
 
     let data, error;
     try {
-      // First, fetch all categories
-      const categoriesResult = await supabase
-        .from('categories')
-        .select('*')
-        .order('name', { ascending: true });
-      
-      if (categoriesResult.error) {
-        throw categoriesResult.error;
+      // First, try to fetch all categories using Supabase client
+      let categoriesResult;
+      try {
+        categoriesResult = await supabase
+          .from('categories')
+          .select('*')
+          .order('name', { ascending: true });
+        
+        if (categoriesResult.error) {
+          throw categoriesResult.error;
+        }
+      } catch (clientError) {
+        // If Supabase client fails (fetch error), try direct HTTP
+        console.warn('⚠️ Supabase client failed, trying direct HTTP:', clientError);
+        const directResult = await directSupabaseQuery<any>('categories', {
+          orderBy: { column: 'name', ascending: true }
+        });
+        
+        if (directResult.error) {
+          throw new Error(directResult.error.message);
+        }
+        
+        categoriesResult = { data: directResult.data || [], error: null };
       }
       
       const categories = categoriesResult.data || [];
@@ -65,10 +81,26 @@ export async function GET(request: NextRequest) {
           // Join with locations table to filter by city
           // We need to use a different approach since Supabase doesn't support joins in count queries
           // Instead, we'll fetch location_ids for the city first, then count
-          const { data: locations } = await supabase
-            .from('locations')
-            .select('id')
-            .eq('city', city);
+          let locations;
+          try {
+            const locationsResult = await supabase
+              .from('locations')
+              .select('id')
+              .eq('city', city);
+            
+            if (locationsResult.error) {
+              throw locationsResult.error;
+            }
+            locations = locationsResult.data;
+          } catch (locationError) {
+            // Fallback to direct HTTP
+            console.warn('⚠️ Locations query failed, trying direct HTTP:', locationError);
+            const directResult = await directSupabaseQuery<{ id: string }>('locations', {
+              filter: { city },
+              select: 'id'
+            });
+            locations = directResult.data;
+          }
           
           if (locations && locations.length > 0) {
             const locationIds = locations.map(loc => loc.id);
