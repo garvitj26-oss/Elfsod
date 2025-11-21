@@ -8,7 +8,10 @@ export async function createClient() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase environment variables not configured. Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local');
+    const missing = [];
+    if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+    if (!supabaseKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    throw new Error(`Supabase environment variables not configured. Missing: ${missing.join(', ')}. Please check your Netlify environment variables.`);
   }
 
   try {

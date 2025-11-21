@@ -16,11 +16,21 @@ export async function GET(request: NextRequest) {
       supabase = await createClient();
     } catch (clientError) {
       console.error('❌ Failed to create Supabase client:', clientError);
+      
+      // Better error message handling
+      let errorMessage = 'Failed to create Supabase client';
+      if (clientError instanceof Error) {
+        errorMessage = clientError.message;
+      } else if (typeof clientError === 'object' && clientError !== null) {
+        errorMessage = JSON.stringify(clientError, Object.getOwnPropertyNames(clientError));
+      }
+      
       return NextResponse.json({
         success: false,
         error: 'Failed to connect to database',
-        message: 'Please check your Supabase configuration. Frontend will try direct connection.',
-        fallback: true
+        message: errorMessage,
+        fallback: true,
+        details: 'Please check your Supabase configuration in Netlify environment variables. Frontend will try direct connection.'
       }, { status: 500 });
     }
 
@@ -108,10 +118,21 @@ export async function GET(request: NextRequest) {
     } catch (fetchError) {
       // Handle fetch/network errors (like SSL certificate issues)
       console.error('❌ Supabase fetch error (likely SSL/network issue):', fetchError);
+      
+      // Better error message handling
+      let errorMessage = 'Unknown error';
+      if (fetchError instanceof Error) {
+        errorMessage = fetchError.message;
+      } else if (typeof fetchError === 'object' && fetchError !== null) {
+        errorMessage = JSON.stringify(fetchError, Object.getOwnPropertyNames(fetchError));
+      } else {
+        errorMessage = String(fetchError);
+      }
+      
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch categories',
-        message: fetchError instanceof Error ? fetchError.message : String(fetchError),
+        message: errorMessage,
         fallback: true, // Signal frontend to use direct service
         details: 'Server-side connection failed. Frontend will use direct browser connection.'
       }, { status: 500 });
