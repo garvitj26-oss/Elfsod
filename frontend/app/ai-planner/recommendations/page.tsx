@@ -107,7 +107,7 @@ function RecommendationsContent() {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Recommendations</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
-            onClick={() => router.push('/ai-planner')}
+            onClick={() => router.push('/ai-planner/goal')}
             className="px-6 py-3 bg-[#E91E63] text-white rounded-lg font-medium hover:bg-[#F50057] transition-colors"
           >
             Start Over
@@ -125,7 +125,7 @@ function RecommendationsContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => router.push('/ai-planner')}
+                onClick={() => router.push('/ai-planner/goal')}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -157,7 +157,7 @@ function RecommendationsContent() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">No Recommendations Found</h2>
             <p className="text-gray-600 mb-6">We couldn't find ad spaces matching your requirements.</p>
             <button
-              onClick={() => router.push('/ai-planner')}
+              onClick={() => router.push('/ai-planner/goal')}
               className="px-6 py-3 bg-[#E91E63] text-white rounded-lg font-medium hover:bg-[#F50057] transition-colors"
             >
               Adjust Your Campaign

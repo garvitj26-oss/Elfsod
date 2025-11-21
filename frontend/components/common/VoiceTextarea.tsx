@@ -71,7 +71,10 @@ export default function VoiceTextarea({
       let interimTranscript = '';
       let finalTranscript = '';
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      // Process only new results (from resultIndex onwards, but ensure we don't process same results twice)
+      const startIndex = Math.max(event.resultIndex, lastResultIndexRef.current);
+      
+      for (let i = startIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
           finalTranscript += transcript + ' ';
@@ -79,6 +82,9 @@ export default function VoiceTextarea({
           interimTranscript += transcript;
         }
       }
+
+      // Update last processed index
+      lastResultIndexRef.current = event.results.length;
 
       // Accumulate final transcripts
       if (finalTranscript) {
@@ -89,8 +95,8 @@ export default function VoiceTextarea({
       setTranscript(interimTranscript);
 
       // Update textarea: append voice transcript to base value
-      // This allows manual typing - if user typed, use current value as base
-      const baseValue = baseValueRef.current || value;
+      // Always use baseValueRef to avoid duplication - never fall back to value
+      const baseValue = baseValueRef.current;
       const voiceText = finalTranscriptRef.current + interimTranscript;
       const newValue = baseValue + voiceText;
       
@@ -115,13 +121,8 @@ export default function VoiceTextarea({
     };
 
     recognition.onend = () => {
-      // When recognition ends, ensure final transcript is saved
-      if (finalTranscriptRef.current || transcript) {
-        const newValue = value + finalTranscriptRef.current + transcript;
-        onChange(newValue.trim());
-      }
-      
-      // Clear state if we're not supposed to be listening
+      // Don't add transcript here - it's already been added in onresult
+      // Just clear state if we're not supposed to be listening
       if (!isListening) {
         finalTranscriptRef.current = '';
         setTranscript('');
@@ -149,12 +150,15 @@ export default function VoiceTextarea({
         recognitionRef.current = null;
       }
       
-      // Store current value as base for appending voice transcripts
-      baseValueRef.current = value;
+      // Clear the textarea when starting a new recording
+      baseValueRef.current = '';
+      onChange('');
       
       // Reset state
       finalTranscriptRef.current = '';
       setTranscript('');
+      lastResultIndexRef.current = 0;
+      lastResultIndexRef.current = 0;
       
       // Create a new recognition instance (required for restart)
       const newRecognition = createRecognition();
@@ -208,16 +212,14 @@ export default function VoiceTextarea({
       recognitionRef.current = null;
     }
     
-    // Ensure any remaining transcript is added to the textarea
-    if (finalTranscriptRef.current || transcript) {
-      const newValue = value + finalTranscriptRef.current + transcript;
-      onChange(newValue.trim());
-    }
+    // Don't add transcript here - it's already been added in onresult
+    // The value already contains all final transcripts
     
     // Clear state
     setIsListening(false);
     finalTranscriptRef.current = '';
     setTranscript('');
+    lastResultIndexRef.current = 0;
   };
 
   const toggleListening = () => {

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { ArrowRight, Sparkles, Palette, Wand2, TrendingUp, Star, Eye } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { ArrowRight, Sparkles, Palette, Wand2, TrendingUp, Star, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import AdSpaceCard from '@/components/common/AdSpaceCard';
 import FilterPanel from '@/components/filters/FilterPanel';
 import { AdSpace } from '@/types';
@@ -32,14 +32,17 @@ interface FilterState {
 export default function HomePage() {
   const [adSpaces, setAdSpaces] = useState<AdSpace[]>([]);
   const [filteredAdSpaces, setFilteredAdSpaces] = useState<AdSpace[]>([]);
+  const [recommendedSpaces, setRecommendedSpaces] = useState<AdSpace[]>([]);
   const [loading, setLoading] = useState(true);
   const { isOpen: showFilters, closeFilters } = useFilterStore();
   const [appliedFilters, setAppliedFilters] = useState<FilterState | null>(null);
   const selectedCity = useLocationStore((state) => state.selectedCity);
   const { startDate, endDate } = useCampaignDatesStore();
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchAdSpaces();
+    fetchRecommendedSpaces();
   }, [selectedCity]); // Refetch when city changes
 
   // Filter ad spaces when dates or filters change
@@ -119,6 +122,84 @@ export default function HomePage() {
       setFilteredAdSpaces([]);
     }
   }, [adSpaces, appliedFilters, startDate, endDate]);
+
+  // Fetch recommended high traffic spaces independently (not affected by filters)
+  const fetchRecommendedSpaces = async () => {
+    try {
+      const params = new URLSearchParams();
+      params.append('availabilityStatus', 'available');
+      params.append('limit', '50'); // Get more to filter for high traffic
+      
+      // Optionally filter by city, but keep it separate from main filters
+      if (selectedCity) {
+        params.append('city', selectedCity);
+      }
+
+      const response = await fetch(`/api/ad-spaces?${params.toString()}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          // Filter and sort for high traffic spaces
+          const highTrafficSpaces = result.data
+            .filter((space: AdSpace) => {
+              const trafficLevel = space.traffic_data?.traffic_level;
+              const nearbyPlaces = space.traffic_data?.nearby_places_count;
+              
+              // Check if traffic level is high or very_high
+              if (trafficLevel === 'high' || trafficLevel === 'very_high') {
+                return true;
+              }
+              
+              // Also include spaces with high nearby places count (estimated high traffic)
+              if (nearbyPlaces && nearbyPlaces > 20) {
+                return true;
+              }
+              
+              // Include spaces with high daily impressions as proxy for traffic
+              if (space.daily_impressions && space.daily_impressions > 10000) {
+                return true;
+              }
+              
+              return false;
+            })
+            .filter((space: AdSpace) => space.availability_status === 'available')
+            .sort((a: AdSpace, b: AdSpace) => {
+              // Sort by traffic level priority, then by daily impressions
+              const getTrafficScore = (space: AdSpace) => {
+                const level = space.traffic_data?.traffic_level;
+                if (level === 'very_high') return 100;
+                if (level === 'high') return 80;
+                if (level === 'moderate') return 50;
+                if (level === 'low') return 20;
+                
+                // Fallback to impressions or nearby places
+                if (space.daily_impressions && space.daily_impressions > 15000) return 70;
+                if (space.daily_impressions && space.daily_impressions > 10000) return 60;
+                if (space.traffic_data?.nearby_places_count && space.traffic_data.nearby_places_count > 20) return 65;
+                
+                return 30;
+              };
+              
+              const scoreA = getTrafficScore(a);
+              const scoreB = getTrafficScore(b);
+              
+              if (scoreA !== scoreB) {
+                return scoreB - scoreA; // Higher score first
+              }
+              
+              // If same score, sort by daily impressions
+              return (b.daily_impressions || 0) - (a.daily_impressions || 0);
+            })
+            .slice(0, 6); // Show top 6 high traffic spaces
+          
+          setRecommendedSpaces(highTrafficSpaces);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching recommended spaces:', error);
+      setRecommendedSpaces([]);
+    }
+  };
 
   const fetchAdSpaces = async () => {
     setLoading(true);
@@ -558,81 +639,23 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Featured Banner */}
-        <section className="mb-12">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white relative overflow-hidden">
-            <div className="relative z-10 max-w-2xl">
-              <div className="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium mb-4">
-                Limited Time Offer
-              </div>
-              <h2 className="text-3xl font-bold mb-3">Get 20% Off Your First Campaign</h2>
-              <p className="text-lg text-white/90 mb-6">
-                Book your ad spaces now and save big on your first campaign with our platform
-              </p>
-              <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
-                Claim Offer
-              </button>
-            </div>
-            <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-white/10 to-transparent" />
-          </div>
-        </section>
-
         {/* Recommended High Traffic Ad Spaces */}
         {(() => {
-          // Filter ad spaces with high/very_high traffic
-          const highTrafficSpaces = adSpaces.filter(space => {
-            const trafficLevel = space.traffic_data?.traffic_level;
-            const nearbyPlaces = space.traffic_data?.nearby_places_count;
-            
-            // Check if traffic level is high or very_high
-            if (trafficLevel === 'high' || trafficLevel === 'very_high') {
-              return true;
-            }
-            
-            // Also include spaces with high nearby places count (estimated high traffic)
-            if (nearbyPlaces && nearbyPlaces > 20) {
-              return true;
-            }
-            
-            // Include spaces with high daily impressions as proxy for traffic
-            if (space.daily_impressions && space.daily_impressions > 10000) {
-              return true;
-            }
-            
-            return false;
-          })
-          .filter(space => space.availability_status === 'available')
-          .sort((a, b) => {
-            // Sort by traffic level priority, then by daily impressions
-            const getTrafficScore = (space: AdSpace) => {
-              const level = space.traffic_data?.traffic_level;
-              if (level === 'very_high') return 100;
-              if (level === 'high') return 80;
-              if (level === 'moderate') return 50;
-              if (level === 'low') return 20;
-              
-              // Fallback to impressions or nearby places
-              if (space.daily_impressions && space.daily_impressions > 15000) return 70;
-              if (space.daily_impressions && space.daily_impressions > 10000) return 60;
-              if (space.traffic_data?.nearby_places_count && space.traffic_data.nearby_places_count > 20) return 65;
-              
-              return 30;
-            };
-            
-            const scoreA = getTrafficScore(a);
-            const scoreB = getTrafficScore(b);
-            
-            if (scoreA !== scoreB) {
-              return scoreB - scoreA; // Higher score first
-            }
-            
-            // If same score, sort by daily impressions
-            return (b.daily_impressions || 0) - (a.daily_impressions || 0);
-          })
-          .slice(0, 6); // Show top 6 high traffic spaces
+          // Use recommendedSpaces state (not affected by filters)
+          const highTrafficSpaces = recommendedSpaces;
           
-          if (highTrafficSpaces.length === 0 || loading) return null;
+          if (highTrafficSpaces.length === 0) return null;
           
+          const scrollCarousel = (direction: 'left' | 'right') => {
+            if (carouselRef.current) {
+              const scrollAmount = 400; // Scroll by 400px
+              carouselRef.current.scrollBy({
+                left: direction === 'left' ? -scrollAmount : scrollAmount,
+                behavior: 'smooth'
+              });
+            }
+          };
+
           return (
             <section className="mb-12">
               <div className="flex items-center justify-between mb-6">
@@ -654,61 +677,109 @@ export default function HomePage() {
                 </Link>
               </div>
               
-              <div className="grid grid-cols-4 gap-6">
-                {highTrafficSpaces.map((space) => {
-                  const formatMetric = (value: number) => {
-                    if (value >= 1000) {
-                      return `${(value / 1000).toFixed(0)}K+`;
-                    }
-                    return value.toString();
-                  };
+              <div className="relative">
+                {/* Left Arrow */}
+                <button
+                  onClick={() => scrollCarousel('left')}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft className="w-6 h-6 text-gray-700" />
+                </button>
 
-                  return (
-                    <Link 
-                      key={space.id} 
-                      href={`/ad-space/${space.id}`}
-                      className="block relative group cursor-pointer"
-                    >
-                      {/* Image Container - Fills entire card, matches AdSpaceCard size */}
-                      <div className="relative w-full h-72 rounded-xl overflow-hidden bg-gray-200 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200">
-                        {space.images && space.images.length > 0 ? (
-                          <>
-                            <img
-                              src={space.images[0]}
-                              alt={space.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              loading="lazy"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
-                                if (fallback) (fallback as HTMLElement).style.display = 'flex';
-                              }}
-                            />
-                            <div className="image-fallback hidden w-full h-full items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 absolute inset-0">
+                {/* Right Arrow */}
+                <button
+                  onClick={() => scrollCarousel('right')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight className="w-6 h-6 text-gray-700" />
+                </button>
+
+                {/* Carousel Container */}
+                <div
+                  ref={carouselRef}
+                  className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4 px-12"
+                  style={{
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                  }}
+                >
+                  {highTrafficSpaces.map((space) => {
+                    const formatMetric = (value: number) => {
+                      if (value >= 1000) {
+                        return `${(value / 1000).toFixed(0)}K+`;
+                      }
+                      return value.toString();
+                    };
+
+                    return (
+                      <Link 
+                        key={space.id} 
+                        href={`/ad-space/${space.id}`}
+                        className="block relative group cursor-pointer flex-shrink-0"
+                        style={{ width: 'calc(25% - 18px)', minWidth: '280px' }}
+                      >
+                        {/* Image Container - Fills entire card, matches AdSpaceCard size */}
+                        <div className="relative w-full h-72 rounded-xl overflow-hidden bg-gray-200 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200">
+                          {space.images && space.images.length > 0 ? (
+                            <>
+                              <img
+                                src={space.images[0]}
+                                alt={space.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const fallback = e.currentTarget.parentElement?.querySelector('.image-fallback');
+                                  if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                                }}
+                              />
+                              <div className="image-fallback hidden w-full h-full items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 absolute inset-0">
+                                <span className="text-gray-400 text-sm">No Image</span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 absolute inset-0">
                               <span className="text-gray-400 text-sm">No Image</span>
                             </div>
-                          </>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 absolute inset-0">
-                            <span className="text-gray-400 text-sm">No Image</span>
+                          )}
+                          
+                          {/* Overlay with Eye Icon and View Count - Top Left Corner */}
+                          <div className="absolute top-3 left-3 flex items-center gap-2 bg-gradient-to-r from-[#E91E63] to-[#F50057] text-white px-3 py-2 rounded-lg shadow-xl pointer-events-none">
+                            <Eye className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm font-semibold whitespace-nowrap">
+                              {formatMetric(space.daily_impressions || 0)}
+                            </span>
                           </div>
-                        )}
-                        
-                        {/* Overlay with Eye Icon and View Count - Top Left Corner */}
-                        <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md text-white px-3 py-2 rounded-lg shadow-xl pointer-events-none">
-                          <Eye className="w-4 h-4 flex-shrink-0" />
-                          <span className="text-sm font-semibold whitespace-nowrap">
-                            {formatMetric(space.daily_impressions || 0)}
-                          </span>
                         </div>
-                      </div>
-                    </Link>
-                  );
-                })}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             </section>
           );
         })()}
+
+        {/* Featured Banner */}
+        <section className="mb-12">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white relative overflow-hidden">
+            <div className="relative z-10 max-w-2xl">
+              <div className="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium mb-4">
+                Limited Time Offer
+              </div>
+              <h2 className="text-3xl font-bold mb-3">Get 20% Off Your First Campaign</h2>
+              <p className="text-lg text-white/90 mb-6">
+                Book your ad spaces now and save big on your first campaign with our platform
+              </p>
+              <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                Claim Offer
+              </button>
+            </div>
+            <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-white/10 to-transparent" />
+          </div>
+        </section>
 
         {/* All Ad Spaces - Single List */}
         <section>

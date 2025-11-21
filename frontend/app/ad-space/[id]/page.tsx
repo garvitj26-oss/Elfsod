@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MapPin, CheckCircle, Eye, Users, Target, ArrowLeft, Calendar, Share2, Heart, Building, Clock } from 'lucide-react';
 import { AdSpace } from '@/types';
@@ -10,24 +10,27 @@ import CartNotification from '@/components/common/CartNotification';
 import TrafficInsights from '@/components/common/TrafficInsights';
 import dynamic from 'next/dynamic';
 
+// Preload map components for faster loading
+const mapComponentsPromise = import('react-leaflet');
+
 const MapContainer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.MapContainer),
-  { ssr: false }
+  () => mapComponentsPromise.then((mod) => mod.MapContainer),
+  { ssr: false, loading: () => null }
 );
 const TileLayer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  () => mapComponentsPromise.then((mod) => mod.TileLayer),
   { ssr: false }
 );
 const Marker = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Marker),
+  () => mapComponentsPromise.then((mod) => mod.Marker),
   { ssr: false }
 );
 const Circle = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Circle),
+  () => mapComponentsPromise.then((mod) => mod.Circle),
   { ssr: false }
 );
 const Popup = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Popup),
+  () => mapComponentsPromise.then((mod) => mod.Popup),
   { ssr: false }
 );
 
@@ -209,6 +212,8 @@ export default function AdSpaceDetailPage() {
   const [mounted, setMounted] = useState(false);
   const [showCartNotification, setShowCartNotification] = useState(false);
   const [trafficLoading, setTrafficLoading] = useState(false);
+  const [mapInView, setMapInView] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const addItem = useCartStore((state) => state.addItem);
 
   useEffect(() => {
@@ -217,6 +222,26 @@ export default function AdSpaceDetailPage() {
       fetchAdSpace(params.id as string);
     }
   }, [params.id]);
+
+  // Preload map libraries when component mounts
+  useEffect(() => {
+    if (mounted) {
+      // Preload map libraries in the background
+      mapComponentsPromise.catch(() => {});
+    }
+  }, [mounted]);
+
+  // Load map when adSpace is ready (simplified - always load when data is available)
+  useEffect(() => {
+    if (mounted && adSpace) {
+      // Small delay to allow page to render first, then load map
+      const timer = setTimeout(() => {
+        setMapInView(true);
+      }, 200);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [mounted, adSpace]);
 
   const fetchAdSpace = async (id: string) => {
     try {
@@ -689,8 +714,19 @@ export default function AdSpaceDetailPage() {
               {/* Location Map */}
               <div className="border-t border-gray-200 pt-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Location & Traffic</h2>
-                <div className="h-96 bg-gray-200 rounded-xl overflow-hidden shadow-lg border-2 border-gray-200">
-                  {mounted && (
+                <div 
+                  ref={mapContainerRef}
+                  className="h-96 bg-gray-200 rounded-xl overflow-hidden shadow-lg border-2 border-gray-200 relative"
+                >
+                  {!mapInView && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                      <div className="text-center">
+                        <div className="w-12 h-12 border-4 border-[#E91E63] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                        <p className="text-sm text-gray-600 font-medium">Loading map...</p>
+                      </div>
+                    </div>
+                  )}
+                  {mounted && mapInView && adSpace && (
                     <MapContainer
                       center={[adSpace.latitude, adSpace.longitude]}
                       zoom={adSpace.route ? 12 : 15}

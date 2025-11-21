@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, ZoomControl, CircleMarker } from 'react-leaflet';
 import { AdSpace } from '@/types';
 import L from 'leaflet';
@@ -358,7 +358,7 @@ export default function MapComponent({ adSpaces, onMarkerClick, selectedId, sele
           const labelIcon = trafficSize ? createTrafficLabelIcon(trafficSize, displayLevel, isSelected) : null;
           
           return (
-            <>
+            <React.Fragment key={`traffic-group-${space.id}`}>
               <Circle
                 key={`traffic-${space.id}`}
                 center={[space.latitude, space.longitude]}
@@ -410,7 +410,7 @@ export default function MapComponent({ adSpaces, onMarkerClick, selectedId, sele
                   </Popup>
                 </Marker>
               )}
-            </>
+            </React.Fragment>
           );
         })}
         
