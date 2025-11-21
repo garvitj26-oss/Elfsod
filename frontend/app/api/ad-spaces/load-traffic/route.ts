@@ -215,12 +215,6 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if (!trafficResponse.ok) {
-          throw new Error(`Traffic API returned ${trafficResponse.status}`);
-        }
-
-        const trafficData = await trafficResponse.json();
-
         // Only save if we got valid data
         if (trafficData && trafficData.traffic_level && trafficData.traffic_level !== 'unknown') {
           // Save to database
