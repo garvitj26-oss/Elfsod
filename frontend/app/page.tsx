@@ -308,25 +308,34 @@ export default function HomePage() {
             : '/api/categories';
           
           const response = await fetch(url);
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success && result.data) {
-              cats = result.data;
-              console.log('✅ Fetched', cats.length, 'categories via API route', selectedCity ? `for ${selectedCity}` : '');
-            } else {
-              throw new Error('API route returned unsuccessful response');
-            }
+          const result = await response.json();
+          
+          // Check if API route indicates fallback should be used
+          if (result.fallback === true) {
+            console.warn('⚠️ API route indicates fallback needed:', result.error || result.message);
+            throw new Error('Server-side connection failed, using browser fallback');
+          }
+          
+          if (response.ok && result.success && result.data) {
+            cats = result.data;
+            console.log('✅ Fetched', cats.length, 'categories via API route', selectedCity ? `for ${selectedCity}` : '');
           } else {
-            throw new Error(`API route returned ${response.status}`);
+            throw new Error(result.error || 'API route returned unsuccessful response');
           }
         } catch (apiError) {
           console.warn('⚠️ API route failed, trying direct service:', apiError);
-          // Fallback to direct service call
+          // Fallback to direct service call (browser-side)
           try {
+            console.log('🔄 Attempting browser-side direct connection to Supabase...');
             cats = await getCategories();
-            console.log('✅ Fetched', cats.length, 'categories via direct service');
+            console.log('✅ Fetched', cats.length, 'categories via direct browser service');
           } catch (directError) {
             console.error('❌ Both API route and direct service failed:', directError);
+            const errorMessage = directError instanceof Error ? directError.message : String(directError);
+            if (errorMessage.includes('CORS') || errorMessage.includes('Failed to fetch')) {
+              console.error('🚫 CORS Error: Supabase may be blocking browser requests');
+              console.error('💡 Check: 1) Supabase project is active, 2) CORS settings in Supabase dashboard');
+            }
             cats = [];
           }
         }
