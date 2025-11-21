@@ -13,11 +13,13 @@ export interface Category {
  * Fetch all categories
  */
 export async function getCategories(): Promise<Category[]> {
+  // In browser, NEXT_PUBLIC_* vars are injected at build time
+  // They should be available, but we'll check the client creation instead
   const supabase = createClient();
   
-  // Check if Supabase is configured
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.error('❌ Supabase environment variables not configured!');
+  // Check if Supabase client was created successfully
+  if (!supabase) {
+    console.error('❌ Failed to create Supabase client!');
     return [];
   }
   
