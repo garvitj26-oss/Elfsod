@@ -31,6 +31,9 @@ const Popup = dynamic(
   { ssr: false }
 );
 
+// Import Leaflet for icon creation
+import * as L from 'leaflet';
+
 // Traffic Circle Component - Always renders
 function TrafficCircle({ adSpace }: { adSpace: AdSpace }) {
   const trafficLevel = adSpace.traffic_data?.traffic_level;
@@ -117,7 +120,7 @@ function TrafficCircle({ adSpace }: { adSpace: AdSpace }) {
       </div>
     `;
     
-    if (typeof window !== 'undefined' && L) {
+    if (typeof window !== 'undefined') {
       return L.divIcon({
         html: svgIcon,
         className: 'traffic-label-marker',
