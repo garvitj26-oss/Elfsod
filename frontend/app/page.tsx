@@ -654,7 +654,7 @@ export default function HomePage() {
                 </Link>
               </div>
               
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-4 gap-6">
                 {highTrafficSpaces.map((space) => {
                   const formatMetric = (value: number) => {
                     if (value >= 1000) {
@@ -669,8 +669,8 @@ export default function HomePage() {
                       href={`/ad-space/${space.id}`}
                       className="block relative group cursor-pointer"
                     >
-                      {/* Image Container - Fills entire card */}
-                      <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-200 shadow-md hover:shadow-xl transition-all duration-300">
+                      {/* Image Container - Fills entire card, matches AdSpaceCard size */}
+                      <div className="relative w-full h-72 rounded-xl overflow-hidden bg-gray-200 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200">
                         {space.images && space.images.length > 0 ? (
                           <>
                             <img
@@ -694,8 +694,8 @@ export default function HomePage() {
                           </div>
                         )}
                         
-                        {/* Overlay with Eye Icon and View Count - Positioned relative to card */}
-                        <div className="absolute bottom-3 right-3 flex items-center gap-2 bg-black/70 backdrop-blur-md text-white px-3 py-2 rounded-lg shadow-xl pointer-events-none">
+                        {/* Overlay with Eye Icon and View Count - Top Left Corner */}
+                        <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md text-white px-3 py-2 rounded-lg shadow-xl pointer-events-none">
                           <Eye className="w-4 h-4 flex-shrink-0" />
                           <span className="text-sm font-semibold whitespace-nowrap">
                             {formatMetric(space.daily_impressions || 0)}
