@@ -34,6 +34,7 @@ export default function VoiceTextarea({
   const recognitionRef = useRef<any>(null);
   const finalTranscriptRef = useRef<string>('');
   const baseValueRef = useRef<string>(''); // Track value when recording starts
+  const lastResultIndexRef = useRef<number>(0); // Track last processed result index
 
   useEffect(() => {
     // Check if browser supports Speech Recognition
