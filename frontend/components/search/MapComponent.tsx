@@ -442,7 +442,7 @@ export default function MapComponent({ adSpaces, onMarkerClick, selectedId, sele
                   </h3>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-sm font-bold rounded-lg shadow-sm">
-                      {formatPrice(space.price_per_month)}/mo
+                      {formatPrice(space.price_per_day * 30)}/mo
                     </span>
                   </div>
                   {space.route && (

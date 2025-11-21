@@ -837,7 +837,7 @@ export default function AdSpaceDetailPage() {
                     <span className="text-gray-600">/day</span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    {formatPrice(adSpace.price_per_month)} per month
+                    {formatPrice(adSpace.price_per_day * 30)} per month
                   </div>
                 </div>
 

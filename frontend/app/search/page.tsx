@@ -441,7 +441,7 @@ function SearchPageContent() {
                         <span className="text-gray-600">/day</span>
                       </div>
                       <div className="text-sm text-gray-600">
-                        {formatPrice(selectedAdSpace.price_per_month)} per month
+                        {formatPrice(selectedAdSpace.price_per_day * 30)} per month
                       </div>
                     </div>
 

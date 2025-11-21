@@ -256,7 +256,7 @@ export default function ViewAdSpacePage() {
                 </div>
                 <div>
                   <p className="text-sm text-slate-400">Per Month</p>
-                  <p className="text-2xl font-bold text-white">₹{adSpace.price_per_month.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-white">₹{(adSpace.price_per_day * 30).toLocaleString()}</p>
                 </div>
               </div>
             </div>
