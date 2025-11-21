@@ -353,22 +353,22 @@ export default function AdSpaceDetailPage() {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Sticky Header */}
-      <div className="sticky top-16 bg-white border-b border-gray-200 z-20">
+      {/* Header - Not sticky, scrolls with content */}
+      <div className="bg-white border-b border-gray-200">
         <div className="container-app px-6 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium"
+              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               Back to results
             </button>
             <div className="flex items-center gap-3">
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
+              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <Share2 className="w-5 h-5 text-gray-600" />
               </button>
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
+              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <Heart className="w-5 h-5 text-gray-600" />
               </button>
             </div>
