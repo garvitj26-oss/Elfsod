@@ -15,19 +15,30 @@ export async function createClient() {
   }
 
   try {
-    const cookieStore = await cookies();
-
-    // Create a custom fetch that handles SSL properly
-    // The Supabase client will use this for all requests
-    const customFetch = (url: string, options: RequestInit = {}) => {
-      // For Node.js environments, we need to ensure SSL certificates are verified
-      // The @supabase/ssr client should handle this, but we can add extra configuration
-      return fetch(url, {
-        ...options,
-        // Node.js fetch (18+) should handle SSL automatically
-        // If issues persist, we can add agent configuration here
-      });
-    };
+    let cookieStore;
+    try {
+      cookieStore = await cookies();
+    } catch (cookieError) {
+      // In some serverless environments, cookies() might fail
+      // We'll create a client without cookie support for read-only operations
+      console.warn('⚠️ Could not access cookies, creating read-only Supabase client:', cookieError);
+      
+      // Create a minimal client for read operations
+      return createServerClient(
+        supabaseUrl,
+        supabaseKey,
+        {
+          cookies: {
+            getAll() {
+              return [];
+            },
+            setAll() {
+              // No-op for read-only operations
+            },
+          },
+        }
+      );
+    }
 
     return createServerClient(
       supabaseUrl,
@@ -49,14 +60,12 @@ export async function createClient() {
             }
           },
         },
-        // Note: @supabase/ssr handles fetch internally, but we can configure it
-        // if needed. The SSL issue is typically resolved by ensuring Node.js
-        // has access to system certificates.
       }
     );
   } catch (error) {
     console.error('Error creating Supabase server client:', error);
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to create Supabase client: ${errorMessage}`);
   }
 }
 
